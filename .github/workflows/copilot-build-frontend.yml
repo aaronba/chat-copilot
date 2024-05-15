@@ -32,6 +32,7 @@ jobs:
           yarn install --frozen-lockfile # install dependencies and ensure lockfile is unchanged.
           yarn build # run build script
           yarn format # run format script
+          ls
         working-directory: webapp
 
       #- name: Determine version
@@ -51,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: copilotchat-webapp-${{ steps.versiontag.outputs.versiontag }}
-          path: ${{ github.workspace }}\webapp\build
+          path: ${{ github.workspace }}/webapp/build
 
       - name: "Set outputs"
         id: artifactoutput
