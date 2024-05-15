@@ -33,3 +33,22 @@ jobs:
           yarn build # run build script
           yarn format # run format script
         working-directory: webapp
+
+      - name: Set version tag
+        id: versiontag
+        run: |
+          $VERSION_TAG = "${{ steps.gitversion.outputs.Major }}."
+          $VERSION_TAG += "${{ steps.gitversion.outputs.Minor }}."
+          $VERSION_TAG += "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+          echo $VERSION_TAG
+          Write-Output "versiontag=$VERSION_TAG" >> $env:GITHUB_OUTPUT
+
+      - name: Upload package to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilotchat-webapp-${{ steps.versiontag.outputs.versiontag }}
+          path: ${{ github.workspace }}\webapp\build
+
+      - name: "Set outputs"
+        id: artifactoutput
+        run: Write-Output "artifactname=copilotchat-webapp-${{ steps.versiontag.outputs.versiontag }}" >> $env:GITHUB_OUTPUT
