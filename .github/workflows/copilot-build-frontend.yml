@@ -38,14 +38,14 @@ jobs:
       #  id: gitversion
       #  uses: gittools/actions/gitversion/execute@v1
 
-      - name: Set version tag
-        id: versiontag
-        run: |
-          $VERSION_TAG = "1."
-          $VERSION_TAG += "1."
-          $VERSION_TAG += "1"
-          echo $VERSION_TAG
-          Write-Output "versiontag=$VERSION_TAG" >> $env:GITHUB_OUTPUT
+      #- name: Set version tag
+      #  id: versiontag
+      #  run: |
+      #    $VERSION_TAG = "1."
+      #    $VERSION_TAG += "1."
+      #    $VERSION_TAG += "1"
+      #    echo $VERSION_TAG
+      #    Write-Output "versiontag=$VERSION_TAG" >> $env:GITHUB_OUTPUT
 
       - name: Upload package to artifacts
         uses: actions/upload-artifact@v4
@@ -55,4 +55,4 @@ jobs:
 
       - name: "Set outputs"
         id: artifactoutput
-        run: Write-Output "artifactname=copilotchat-webapp-${{ steps.versiontag.outputs.versiontag }}" >> $env:GITHUB_OUTPUT
+        run: Write-Output "artifactname=copilotchat-webapp-1.1" >> $env:GITHUB_OUTPUT
