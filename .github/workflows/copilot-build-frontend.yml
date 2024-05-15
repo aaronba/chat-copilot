@@ -23,7 +23,6 @@ jobs:
           node-version: 18
           cache: "yarn"
           cache-dependency-path: "webapp/yarn.lock"
-          fetch-depth: 0
 
       - name: Run yarn install, yarn build, & yarn format
         run: |
@@ -42,9 +41,9 @@ jobs:
       - name: Set version tag
         id: versiontag
         run: |
-          $VERSION_TAG = "${{ steps.gitversion.outputs.Major }}."
-          $VERSION_TAG += "${{ steps.gitversion.outputs.Minor }}."
-          $VERSION_TAG += "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+          $VERSION_TAG = "1."
+          $VERSION_TAG += "1."
+          $VERSION_TAG += "1"
           echo $VERSION_TAG
           Write-Output "versiontag=$VERSION_TAG" >> $env:GITHUB_OUTPUT
 
