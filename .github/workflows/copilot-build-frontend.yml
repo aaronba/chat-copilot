@@ -23,6 +23,7 @@ jobs:
           node-version: 18
           cache: "yarn"
           cache-dependency-path: "webapp/yarn.lock"
+          fetch-depth: 0
 
       - name: Run yarn install, yarn build, & yarn format
         run: |
