@@ -34,9 +34,9 @@ jobs:
           yarn format # run format script
         working-directory: webapp
 
-      - name: Determine version
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v1
+      #- name: Determine version
+      #  id: gitversion
+      #  uses: gittools/actions/gitversion/execute@v1
 
       - name: Set version tag
         id: versiontag
