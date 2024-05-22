@@ -111,7 +111,7 @@ public class ChatHistoryController : ControllerBase
         // Add the user to the chat session
         await this._participantRepository.CreateAsync(new ChatParticipant(this._authInfo.UserId, newChat.Id));
 
-        this._logger.LogDebug("Created chat session with id {0}.", newChat.Id);
+        this._logger.LogInformation("Created chat session with id {0}.", newChat.Id);
 
         return this.CreatedAtRoute(GetChatRoute, new { chatId = newChat.Id }, new CreateChatResponse(newChat, chatMessage));
     }

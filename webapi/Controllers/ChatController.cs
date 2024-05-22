@@ -120,7 +120,7 @@ public class ChatController : ControllerBase, IDisposable
     [FromRoute] Guid chatId,
     [FromQuery] string deploymentName)
     {
-        this._logger.LogDebug("Chat message received.");
+        this._logger.LogInformation("Chat request received from {0}", authInfo.UserId);
 
         string chatIdString = chatId.ToString();
 

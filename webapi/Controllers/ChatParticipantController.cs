@@ -82,6 +82,7 @@ public class ChatParticipantController : ControllerBase
         // Note that the client who initiated the request may not have joined the group.
         await messageRelayHubContext.Clients.Group(chatId.ToString()).SendAsync(UserJoinedClientCall, chatId, userId);
 
+        this._logger.LogInformation("User {0} has joined conversation {1}", userId, chatId);
         return this.Ok(chatParticipant);
     }
 

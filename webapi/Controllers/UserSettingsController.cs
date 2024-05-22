@@ -63,7 +63,7 @@ public class UserSettingsController : ControllerBase
                 return this.Ok(newUserSettings);  // Only 1 record per user id
             }
 
-            this._logger.LogDebug("User settings record found for: {0}", userId);
+            this._logger.LogInformation("User logged in and retrieved settings record for: {0}", userId);
             foreach (var setting in settings)
             {
                 if (setting.DeploymentGPT35 != true && setting.DeploymentGPT4 != true)
