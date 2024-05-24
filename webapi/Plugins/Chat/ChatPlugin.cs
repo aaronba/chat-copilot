@@ -23,6 +23,7 @@ using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Services;
 using CopilotChatMessage = CopilotChat.WebApi.Models.Storage.CopilotChatMessage;
 
 namespace CopilotChat.WebApi.Plugins.Chat;
@@ -196,6 +197,7 @@ public class ChatPlugin
         [Description("Unique and persistent identifier for the user")] string userId,
         [Description("Name of the user")] string userName,
         [Description("Unique and persistent identifier for the chat")] string chatId,
+        [Description("AI Deployment Model Name retrieves correct Semantic Kernel Service Provider i.e. gpt35turbo or gpt4")] string deploymentName,
         [Description("Type of the message")] string messageType,
         KernelArguments context,
         CancellationToken cancellationToken = default)
@@ -211,7 +213,7 @@ public class ChatPlugin
         KernelArguments chatContext = new(context);
         chatContext["knowledgeCutoff"] = this._promptOptions.KnowledgeCutoffDate;
 
-        CopilotChatMessage chatMessage = await this.GetChatResponseAsync(chatId, userId, chatContext, newUserMessage, cancellationToken);
+        CopilotChatMessage chatMessage = await this.GetChatResponseAsync(chatId, userId, deploymentName, chatContext, newUserMessage, cancellationToken);
         context["input"] = chatMessage.Content;
 
         if (chatMessage.TokenUsage != null)
@@ -235,7 +237,7 @@ public class ChatPlugin
     /// <param name="userMessage">ChatMessage object representing new user message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created chat message containing the model-generated response.</returns>
-    private async Task<CopilotChatMessage> GetChatResponseAsync(string chatId, string userId, KernelArguments chatContext, CopilotChatMessage userMessage, CancellationToken cancellationToken)
+    private async Task<CopilotChatMessage> GetChatResponseAsync(string chatId, string userId, string deploymentName, KernelArguments chatContext, CopilotChatMessage userMessage, CancellationToken cancellationToken)
     {
         // Render system instruction components and create the meta-prompt template
         var systemInstructions = await AsyncUtils.SafeInvokeAsync(
@@ -287,7 +289,7 @@ public class ChatPlugin
         // Stream the response to the client
         var promptView = new BotResponsePrompt(systemInstructions, audience, userIntent, memoryText, allowedChatHistory, metaPrompt);
 
-        return await this.HandleBotResponseAsync(chatId, userId, chatContext, promptView, citationMap.Values.AsEnumerable(), cancellationToken);
+        return await this.HandleBotResponseAsync(chatId, userId, deploymentName, chatContext, promptView, citationMap.Values.AsEnumerable(), cancellationToken);
     }
 
     /// <summary>
@@ -319,6 +321,7 @@ public class ChatPlugin
     private async Task<CopilotChatMessage> HandleBotResponseAsync(
         string chatId,
         string userId,
+        string deploymentName,
         KernelArguments chatContext,
         BotResponsePrompt promptView,
         IEnumerable<CitationSource>? citations,
@@ -327,7 +330,7 @@ public class ChatPlugin
         // Get bot response and stream to client
         await this.UpdateBotResponseStatusOnClientAsync(chatId, "Generating bot response", cancellationToken);
         CopilotChatMessage chatMessage = await AsyncUtils.SafeInvokeAsync(
-            () => this.StreamResponseToClientAsync(chatId, userId, promptView, cancellationToken, citations), nameof(StreamResponseToClientAsync));
+            () => this.StreamResponseToClientAsync(chatId, userId, deploymentName, promptView, cancellationToken, citations), nameof(StreamResponseToClientAsync));
 
         // Save the message into chat history
         await this.UpdateBotResponseStatusOnClientAsync(chatId, "Saving message to chat history", cancellationToken);
@@ -634,6 +637,7 @@ public class ChatPlugin
     private async Task<CopilotChatMessage> StreamResponseToClientAsync(
         string chatId,
         string userId,
+        string deploymentName,
         BotResponsePrompt prompt,
         CancellationToken cancellationToken,
         IEnumerable<CitationSource>? citations = null)

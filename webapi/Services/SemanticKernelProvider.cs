@@ -16,6 +16,8 @@ namespace CopilotChat.WebApi.Services;
 public sealed class SemanticKernelProvider
 {
     private readonly IKernelBuilder _builderChat;
+    private static AzureOpenAIConfig? _azureAIOptions;
+    private static HttpClient? _httpClient;
 
     public SemanticKernelProvider(IServiceProvider serviceProvider, IConfiguration configuration, IHttpClientFactory httpClientFactory, string? deploymentName)
     {
@@ -25,7 +27,12 @@ public sealed class SemanticKernelProvider
     /// <summary>
     /// Produce semantic-kernel with only completion services for chat.
     /// </summary>
-    public Kernel GetCompletionKernel() => this._builderChat.Build();
+    public Kernel GetCompletionKernel(string? deploymentName) =>
+        this._builderChat.AddAzureOpenAIChatCompletion((deploymentName != null) ? deploymentName : _azureAIOptions.Deployment, // User can switch AI deployment name
+                    _azureAIOptions.Endpoint,
+                    _azureAIOptions.APIKey,
+                    serviceId: deploymentName + "_service", // uniquely ID this service for later lookup
+                    httpClient: _httpClient).Build();
 
     private static IKernelBuilder InitializeCompletionKernel(
         IServiceProvider serviceProvider,
@@ -37,19 +44,22 @@ public sealed class SemanticKernelProvider
 
         builder.Services.AddLogging();
 
+        _httpClient = httpClientFactory.CreateClient();
+
         var memoryOptions = serviceProvider.GetRequiredService<IOptions<KernelMemoryConfig>>().Value;
 
         switch (memoryOptions.TextGeneratorType)
         {
             case string x when x.Equals("AzureOpenAI", StringComparison.OrdinalIgnoreCase):
             case string y when y.Equals("AzureOpenAIText", StringComparison.OrdinalIgnoreCase):
-                var azureAIOptions = memoryOptions.GetServiceConfig<AzureOpenAIConfig>(configuration, "AzureOpenAIText");
+                _azureAIOptions = memoryOptions.GetServiceConfig<AzureOpenAIConfig>(configuration, "AzureOpenAIText");
 #pragma warning disable CA2000 // No need to dispose of HttpClient instances from IHttpClientFactory
-                builder.AddAzureOpenAIChatCompletion(
-                    (deploymentName != null) ? deploymentName : azureAIOptions.Deployment, // User can switch AI deployment name
-                    azureAIOptions.Endpoint,
-                    azureAIOptions.APIKey,
-                    httpClient: httpClientFactory.CreateClient());
+                // gpt-35-turbro service
+                builder.AddAzureOpenAIChatCompletion((deploymentName != null) ? deploymentName : _azureAIOptions.Deployment, // User can switch AI deployment name
+                    _azureAIOptions.Endpoint,
+                    _azureAIOptions.APIKey,
+                    serviceId: "gpt-35-turbo", // uniquely ID this service for later lookup
+                    httpClient: _httpClient);
                 break;
 
             case string x when x.Equals("OpenAI", StringComparison.OrdinalIgnoreCase):

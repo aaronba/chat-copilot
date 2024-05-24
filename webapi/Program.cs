@@ -8,15 +8,19 @@ using System.Threading.Tasks;
 using CopilotChat.WebApi.Extensions;
 using CopilotChat.WebApi.Hubs;
 using CopilotChat.WebApi.Services;
-using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.ApplicationInsights.Extensibility.Implementation;
+using CopilotChat.WebApi.Models.Request;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.ApplicationInsights.Extensibility.Implementation;
+using Microsoft.ApplicationInsights.Extensibility;
 
 namespace CopilotChat.WebApi;
 
@@ -110,6 +114,36 @@ public sealed class Program
                     appBuilder.Run(
                         async context => await Task.Run(() => context.Response.Redirect("/swagger"))));
         }
+
+        // Used when user switches the AI Deployment Model Name
+        app.MapPost("/configuration/reload", ([FromBody] AppConfigParameters config) =>
+        {
+            /*             var root = (IConfigurationRoot)app.Configuration;
+                        root.Reload();
+
+                        // The configuration can be forced to reload by using reflection to walk the chain and reload the child root(s)
+                        if (config.force)
+                        {
+                            foreach (var provider in root.Providers)
+                            {
+                                if (provider is ChainedConfigurationProvider chained)
+                                {
+                                    var field = typeof(ChainedConfigurationProvider).GetField(
+                                        "_config",
+                                        BindingFlags.Instance | BindingFlags.NonPublic);
+
+                                    var inner = (IConfiguration)field!.GetValue(chained)!;
+
+                                    if (inner is IConfigurationRoot childRoot)
+                                    {
+                                        childRoot.Reload();
+                                    }
+                                }
+                            }
+                        } */
+
+            return Results.Ok();
+        });
 
         // Start the service
         Task runTask = app.RunAsync();

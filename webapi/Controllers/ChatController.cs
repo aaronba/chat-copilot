@@ -35,6 +35,8 @@ using Microsoft.SemanticKernel.Plugins.MsGraph;
 using Microsoft.SemanticKernel.Plugins.MsGraph.Connectors;
 using Microsoft.SemanticKernel.Plugins.MsGraph.Connectors.Client;
 using Microsoft.SemanticKernel.Plugins.OpenApi;
+using Microsoft.SemanticKernel.Services;
+using Microsoft.Extensions.Azure;
 
 namespace CopilotChat.WebApi.Controllers;
 
@@ -76,7 +78,7 @@ public class ChatController : ControllerBase, IDisposable
     /// <param name="kernel">Semantic kernel obtained through dependency injection.</param>
     /// <param name="params">Request body parameters i.e. Azure OpenAI Deployment Name.</param>
     /// <returns>Results containing the response from the model.</returns>
-    [Route("chats/updatekernelservices")]
+    [Route("chats/updatekernelservice")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateKernelService(
@@ -85,7 +87,7 @@ public class ChatController : ControllerBase, IDisposable
     {
         this._logger.LogDebug("Request received to update semantic kernel service.");
 
-        // SemanticKernelExtensions.ReplaceKernelServices();
+        //   SemanticKernelExtensions.ReplaceKernelServices(kp.deployment);
 
         return this.Ok(kernel);
     }
@@ -115,14 +117,15 @@ public class ChatController : ControllerBase, IDisposable
     [FromServices] ChatParticipantRepository chatParticipantRepository,
     [FromServices] IAuthInfo authInfo,
     [FromBody] Ask ask,
-    [FromRoute] Guid chatId)
+    [FromRoute] Guid chatId,
+    [FromQuery] string deploymentName)
     {
-        this._logger.LogDebug("Chat message received.");
+        this._logger.LogInformation("Chat request received from {0}", authInfo.UserId);
 
         string chatIdString = chatId.ToString();
 
         // Put ask's variables in the context we will use.
-        var contextVariables = GetContextVariables(ask, authInfo, chatIdString);
+        var contextVariables = GetContextVariables(ask, authInfo, chatIdString, deploymentName);
 
         // Verify that the chat exists and that the user has access to it.
         ChatSession? chat = null;
@@ -380,12 +383,13 @@ public class ChatController : ControllerBase, IDisposable
         return;
     }
 
-    private static KernelArguments GetContextVariables(Ask ask, IAuthInfo authInfo, string chatId)
+    private static KernelArguments GetContextVariables(Ask ask, IAuthInfo authInfo, string chatId, string deploymentName)
     {
         const string UserIdKey = "userId";
         const string UserNameKey = "userName";
         const string ChatIdKey = "chatId";
         const string MessageKey = "message";
+        const string DeploymentName = "deploymentName";
 
         var contextVariables = new KernelArguments();
         foreach (var variable in ask.Variables)
@@ -397,6 +401,7 @@ public class ChatController : ControllerBase, IDisposable
         contextVariables[UserNameKey] = authInfo.Name;
         contextVariables[ChatIdKey] = chatId;
         contextVariables[MessageKey] = ask.Input;
+        contextVariables[DeploymentName] = deploymentName;
 
         return contextVariables;
     }

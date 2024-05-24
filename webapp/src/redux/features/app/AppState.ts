@@ -151,21 +151,21 @@ export const Features = {
         description: 'Enable chat session sharing.',
     },
     [FeatureKeys.RLHF]: {
-        enabled: false,
+        enabled: true,
         label: 'Reinforcement Learning from Human Feedback',
         inactive: false,
         description: 'Enable users to vote on model-generated responses. For demonstration purposes only.',
         // TODO: [Issue #42] Send and store feedback in backend
     },
     [FeatureKeys.DeploymentGPT35]: {
-        enabled: true,
+        enabled: false,
         label: 'gpt-35-turbo',
-        inactive: false,
+        inactive: true,
     },
     [FeatureKeys.DeploymentGPT4]: {
         enabled: false,
         label: 'gpt-4',
-        inactive: false,
+        inactive: true,
     },
 };
 
@@ -183,18 +183,19 @@ export const Settings = [
     },
     {
         title: 'Azure AI',
-        features: [
-            FeatureKeys.AzureContentSafety,
-            FeatureKeys.AzureAISearch,
-            FeatureKeys.DeploymentGPT35,
-            FeatureKeys.DeploymentGPT4,
-        ],
+        features: [FeatureKeys.AzureContentSafety, FeatureKeys.AzureAISearch],
         stackVertically: true,
     },
     {
         title: 'Experimental',
         description: 'The related icons and menu options are hidden until you turn this on',
-        features: [FeatureKeys.BotAsDocs, FeatureKeys.MultiUserChat, FeatureKeys.RLHF],
+        features: [
+            FeatureKeys.BotAsDocs,
+            FeatureKeys.MultiUserChat,
+            FeatureKeys.RLHF,
+            FeatureKeys.DeploymentGPT35,
+            FeatureKeys.DeploymentGPT4,
+        ],
     },
 ];
 

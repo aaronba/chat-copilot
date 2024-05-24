@@ -364,7 +364,12 @@ internal sealed class ServiceConfiguration
         {
             case string x when x.Equals("AzureOpenAI", StringComparison.OrdinalIgnoreCase):
             case string y when y.Equals("AzureOpenAIText", StringComparison.OrdinalIgnoreCase):
-                builder.Services.AddAzureOpenAITextGeneration(this.GetServiceConfig<AzureOpenAIConfig>("AzureOpenAIText"));
+                // Initialize singletons for each type of AI Deployment Model Name so users can choose to switch between them at runtime
+                AzureOpenAIConfig config = this.GetServiceConfig<AzureOpenAIConfig>("AzureOpenAIText");
+                // config.Deployment = "gpt-35-turbo";
+                builder.Services.AddAzureOpenAITextGeneration(config);
+                // config.Deployment = "gpt-4";
+                // builder.Services.AddAzureOpenAITextGeneration(config);
                 break;
 
             case string x when x.Equals("OpenAI", StringComparison.OrdinalIgnoreCase):

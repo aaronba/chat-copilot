@@ -15,6 +15,7 @@ import { AlertType } from '../../libs/models/AlertType';
 import { ChatMessageType } from '../../libs/models/ChatMessage';
 import { useAppDispatch, useAppSelector } from '../../redux/app/hooks';
 import { RootState, store } from '../../redux/app/store';
+import { FeatureKeys } from '../../redux/features/app/AppState';
 import { addAlert } from '../../redux/features/app/appSlice';
 import { editConversationInput, updateBotResponseStatus } from '../../redux/features/conversations/conversationsSlice';
 import { Alerts } from '../shared/Alerts';
@@ -83,7 +84,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
     const { instance, inProgress } = useMsal();
     const dispatch = useAppDispatch();
     const { conversations, selectedId } = useAppSelector((state: RootState) => state.conversations);
-    const { activeUserInfo } = useAppSelector((state: RootState) => state.app);
+    const { activeUserInfo, features } = useAppSelector((state: RootState) => state.app);
     const fileHandler = useFile();
 
     const [value, setValue] = useState('');
@@ -129,7 +130,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
             recognizer.recognizeOnceAsync((result) => {
                 if (result.reason === speechSdk.ResultReason.RecognizedSpeech) {
                     if (result.text && result.text.length > 0) {
-                        handleSubmit(result.text);
+                        let deploymentName = '';
+                        if (features[FeatureKeys.DeploymentGPT35].enabled) deploymentName = 'gpt-35-turbo';
+                        else if (features[FeatureKeys.DeploymentGPT4].enabled) deploymentName = 'gpt-4';
+
+                        handleSubmit(result.text, deploymentName);
                     }
                 }
                 setIsListening(false);
@@ -137,7 +142,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
         }
     };
 
-    const handleSubmit = (value: string, messageType: ChatMessageType = ChatMessageType.Message) => {
+    const handleSubmit = (
+        value: string,
+        deploymentName: string,
+        messageType: ChatMessageType = ChatMessageType.Message,
+    ) => {
         if (value.trim() === '') {
             return; // only submit if value is not empty
         }
@@ -145,7 +154,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
         setValue('');
         dispatch(editConversationInput({ id: selectedId, newInput: '' }));
         dispatch(updateBotResponseStatus({ chatId: selectedId, status: 'Calling the kernel' }));
-        onSubmit({ value, messageType, chatId: selectedId }).catch((error) => {
+        onSubmit({ value, messageType, chatId: selectedId, deploymentName: deploymentName }).catch((error) => {
             const message = `Error submitting chat input: ${(error as Error).message}`;
             log(message);
             dispatch(
@@ -232,7 +241,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                     onKeyDown={(event) => {
                         if (event.key === 'Enter' && !event.shiftKey) {
                             event.preventDefault();
-                            handleSubmit(value);
+
+                            let deploymentName = '';
+                            if (features[FeatureKeys.DeploymentGPT35].enabled) deploymentName = 'gpt-35-turbo';
+                            else if (features[FeatureKeys.DeploymentGPT4].enabled) deploymentName = 'gpt-4';
+                            handleSubmit(value, deploymentName);
                         }
                     }}
                     onBlur={() => {
@@ -287,7 +300,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                         appearance="transparent"
                         icon={<SendRegular />}
                         onClick={() => {
-                            handleSubmit(value);
+                            let deploymentName = '';
+                            if (features[FeatureKeys.DeploymentGPT35].enabled) deploymentName = 'gpt-35-turbo';
+                            else if (features[FeatureKeys.DeploymentGPT4].enabled) deploymentName = 'gpt-4';
+                            handleSubmit(value, deploymentName);
                         }}
                         disabled={conversations[selectedId].disabled}
                     />

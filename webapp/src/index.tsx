@@ -129,15 +129,15 @@ export function renderApp() {
             store.dispatch(
                 toggleFeatureState({
                     feature: FeatureKeys.DeploymentGPT35,
-                    deactivate: lockControl,
-                    enable: true,
+                    deactivate: true, // For now, leave disabled
+                    enable: false,
                 }),
             );
 
             store.dispatch(
                 toggleFeatureState({
                     feature: FeatureKeys.DeploymentGPT4,
-                    deactivate: lockControl,
+                    deactivate: true, // For now, leave disabled
                     enable: false,
                 }),
             );

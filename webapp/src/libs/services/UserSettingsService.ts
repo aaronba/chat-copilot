@@ -57,4 +57,25 @@ export class UserSettingsService extends BaseService {
 
         return result;
     };
+
+    public reloadAppConfiguration = async (
+        force: boolean,
+        deploymentName: string,
+        accessToken: string,
+    ): Promise<boolean> => {
+        const body = {
+            force: force,
+            deploymentName: deploymentName,
+        };
+        const result = await this.getResponseAsync<boolean>(
+            {
+                commandPath: `configuration/reload`,
+                method: 'POST',
+                body,
+            },
+            accessToken,
+        );
+
+        return result;
+    };
 }

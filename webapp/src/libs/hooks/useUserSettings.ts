@@ -65,8 +65,24 @@ export const useUserSettings = () => {
         return undefined;
     };
 
+    const reloadAppConfig = async (force: boolean, deploymentName: string) => {
+        try {
+            return await userSettingsService.reloadAppConfiguration(
+                force,
+                deploymentName,
+                await AuthHelper.getSKaaSAccessToken(instance, inProgress),
+            );
+        } catch (e: any) {
+            const errorMessage = `Unable to reload application configuration during runtime. Details: ${getErrorDetails(e)}`;
+            dispatch(addAlert({ message: errorMessage, type: AlertType.Error }));
+        }
+
+        return undefined;
+    };
+
     return {
         updateUserSettings,
         getUserSettings,
+        reloadAppConfig,
     };
 };

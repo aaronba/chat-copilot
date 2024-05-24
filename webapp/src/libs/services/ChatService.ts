@@ -151,6 +151,7 @@ export class ChatService extends BaseService {
     public getBotResponseAsync = async (
         ask: IAsk,
         accessToken: string,
+        deploymentName: string,
         enabledPlugins?: Plugin[],
         processPlan = false,
     ): Promise<IAskResult> => {
@@ -208,7 +209,7 @@ export class ChatService extends BaseService {
 
         const result = await this.getResponseAsync<IAskResult>(
             {
-                commandPath: `chats/${chatId}/${processPlan ? 'plan' : 'messages'}`,
+                commandPath: `chats/${chatId}/${processPlan ? 'plan' : 'messages'}?deploymentName=${deploymentName}`,
                 method: 'POST',
                 body: ask,
             },

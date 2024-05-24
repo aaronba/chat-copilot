@@ -126,7 +126,7 @@ const App = () => {
                         if (us.azureAISearch) dispatch(toggleFeatureFlag(FeatureKeys.AzureAISearch)); // Turn on
                         if (us.exportChatSessions) dispatch(toggleFeatureFlag(FeatureKeys.ExportChatSessions)); // Turn on
                         if (us.liveChatSessionSharing) dispatch(toggleFeatureFlag(FeatureKeys.LiveChatSessionSharing)); // Turn on
-                        if (us.feedbackFromUser) dispatch(toggleFeatureFlag(FeatureKeys.RLHF)); // Turn on
+                        // if (us.feedbackFromUser) dispatch(toggleFeatureFlag(FeatureKeys.RLHF)); // Turn on
                         if (us.deploymentGPT35) dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT35)); // Turn on
                         if (us.deploymentGPT4) dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT4)); // Turn on
                     }
@@ -173,7 +173,7 @@ const App = () => {
                         if (us.azureAISearch) dispatch(toggleFeatureFlag(FeatureKeys.AzureAISearch)); // Turn on
                         if (us.exportChatSessions) dispatch(toggleFeatureFlag(FeatureKeys.ExportChatSessions)); // Turn on
                         if (us.liveChatSessionSharing) dispatch(toggleFeatureFlag(FeatureKeys.LiveChatSessionSharing)); // Turn on
-                        if (us.feedbackFromUser) dispatch(toggleFeatureFlag(FeatureKeys.RLHF)); // Turn on
+                        //  if (us.feedbackFromUser) dispatch(toggleFeatureFlag(FeatureKeys.RLHF)); // Turn on
                         if (us.deploymentGPT35) dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT35)); // Turn on
                         if (us.deploymentGPT4) dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT4)); // Turn on
                     }

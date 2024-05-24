@@ -25,6 +25,7 @@ import { PlanState, ProposedPlan } from '../../../libs/models/Plan';
 import { getPlanGoal } from '../../../libs/utils/PlanUtils';
 import { useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
+import { FeatureKeys } from '../../../redux/features/app/AppState';
 import { useDialogClasses } from '../../../styles';
 import { PlanBody } from './PlanBody';
 
@@ -61,6 +62,7 @@ export const PlanDialogView: React.FC<IPlanDialogViewProps> = ({ goal, plan, set
     const chat = useChat();
     const [planView, setPlanView] = React.useState(plan.proposedPlan);
     const { selectedId } = useAppSelector((state: RootState) => state.conversations);
+    const { features } = useAppSelector((state: RootState) => state.app);
     const description = getPlanGoal(goal);
 
     const [openConfirmationDialog, setOpenConfirmationDialog] = React.useState(false);
@@ -81,7 +83,11 @@ export const PlanDialogView: React.FC<IPlanDialogViewProps> = ({ goal, plan, set
             generatedPlanMessageId: null,
         });
 
-        await chat.processPlan(selectedId, PlanState.Derived, updatedPlan, description);
+        let deploymentName = '';
+        if (features[FeatureKeys.DeploymentGPT35].enabled) deploymentName = 'gpt-35-turbo';
+        else if (features[FeatureKeys.DeploymentGPT4].enabled) deploymentName = 'gpt-4';
+
+        await chat.processPlan(selectedId, deploymentName, PlanState.Derived, updatedPlan, description);
     };
 
     return (

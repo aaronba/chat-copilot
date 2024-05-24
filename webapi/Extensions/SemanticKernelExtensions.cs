@@ -1,13 +1,16 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
+using CopilotChat.WebApi.Auth;
 using CopilotChat.WebApi.Hubs;
 using CopilotChat.WebApi.Models.Response;
+using CopilotChat.WebApi.Models.Storage;
 using CopilotChat.WebApi.Options;
 using CopilotChat.WebApi.Plugins.Chat;
 using CopilotChat.WebApi.Services;
@@ -47,19 +50,37 @@ internal static class SemanticKernelExtensions
     /// </summary>
     public delegate Task KernelSetupHook(IServiceProvider sp, Kernel kernel);
 
+    public delegate Task<UserSettings?> UserSettingsDelegate(IServiceProvider sp);
+
     /// <summary>
     /// Add Semantic Kernel services
     /// </summary>
     public static WebApplicationBuilder AddSemanticKernelServices(this WebApplicationBuilder builder)
     {
-        builder.InitializeKernelProvider();
+        builder.InitializeKernelProvider(null);
 
         // Semantic Kernel
         builder.Services.AddScoped<Kernel>(
-            sp =>
+            (sp) =>
             {
                 var provider = sp.GetRequiredService<SemanticKernelProvider>();
-                var kernel = provider.GetCompletionKernel();
+
+                string? deploymentName = null;
+                UserSettings? settings = sp.GetService<UserSettingsDelegate>()?.Invoke(sp).Result;
+                if (settings != null)
+                {
+                    if ((bool)settings.DeploymentGPT35)
+                    {
+                        deploymentName = "gpt-35-turbo";
+                    }
+                    else if ((bool)settings.DeploymentGPT4)
+                    {
+                        deploymentName = "gpt-4";
+                    }
+                }
+
+                deploymentName = null; // For now, keep null until switcher tested fully
+                var kernel = provider.GetCompletionKernel(deploymentName);
 
                 sp.GetRequiredService<RegisterFunctionsWithKernel>()(sp, kernel);
 
@@ -77,6 +98,9 @@ internal static class SemanticKernelExtensions
         // Add any additional setup needed for the kernel.
         // Uncomment the following line and pass in a custom hook for any complimentary setup of the kernel.
         builder.Services.AddKernelSetupHook(RegisterPluginsAsync);
+
+        // Service to retrieve user settings
+        builder.Services.AddScoped<UserSettingsDelegate>(sp => RetrieveUserSettings);
 
         return builder;
     }
@@ -124,18 +148,26 @@ internal static class SemanticKernelExtensions
         return kernel;
     }
 
-    public static WebApplicationBuilder ReplaceKernelServices(this WebApplicationBuilder builder, string deploymentName)
+    public static void ReplaceKernelServices(this IServiceCollection services, string deploymentName)
     {
+        var config = services.BuildServiceProvider().GetService<IConfiguration>()?.GetSection("AzureOpenAIText").Get(typeof(IConfiguration));
+        if (config == null)
+        {
+            return;
+        }
+
+        //IConfiguration config = services.BuildServiceProvider().GetService<IConfiguration>();  //?.GetSection("AzureOpenAIText").Get<PluginConfig>();
+
         // Swap out the kernel provider service with this one to use a different Azure OpenAI Deployment Name updated by the user
         ServiceDescriptor descriptorProvider = ServiceDescriptor.Singleton(typeof(SemanticKernelProvider),
-                                        sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), deploymentName));
-        builder.Services.Replace(descriptorProvider);
+                                        sp => new SemanticKernelProvider(sp, (IConfiguration)config, sp.GetRequiredService<IHttpClientFactory>(), deploymentName));
+        services.Replace(descriptorProvider);
 
         // Swap out the kernel service
         ServiceDescriptor descriptorKernel = ServiceDescriptor.Scoped(typeof(Kernel), sp =>
             {
                 var provider = sp.GetRequiredService<SemanticKernelProvider>();
-                var kernel = provider.GetCompletionKernel();
+                var kernel = provider.GetCompletionKernel(deploymentName);
 
                 sp.GetRequiredService<RegisterFunctionsWithKernel>()(sp, kernel);
 
@@ -144,17 +176,41 @@ internal static class SemanticKernelExtensions
                 return kernel;
             });
 
-        builder.Services.Replace(descriptorKernel);
-
-        return builder;
+        services.Replace(descriptorKernel);
     }
 
-    private static void InitializeKernelProvider(this WebApplicationBuilder builder)
+    private static void InitializeKernelProvider(this WebApplicationBuilder builder, string? deploymentName)
     {
-        builder.Services.AddSingleton(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), null));
+        builder.Services.AddSingleton(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), deploymentName));
+        //builder.Services.AddTransient(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), deploymentName));
+        //builder.Services.AddKeyedSingleton<SemanticKernelProvider>("gpt-35-turbo", (sp, ConfigurationManager) => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), "gpt-35-turbo"));
+        //builder.Services.AddKeyedSingleton<SemanticKernelProvider>("gpt-4", (sp, ConfigurationManager) => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>(), "gpt-4"));
+    }
 
-        //      SemanticKernelProvider skp => new(skp, builder.Configuration, skp.GetRequiredService<IHttpClientFactory>(), "gpt-35-turbro");
-        //      builder.Services.AddKeyedSingleton<SemanticKernelProvider>("gpt-35-turbro", skp);
+    private static async Task<UserSettings?> RetrieveUserSettings(IServiceProvider sp)
+    {
+        string userID = "";
+
+        try
+        {
+            var auth = sp.GetService<IAuthInfo>();
+
+            userID = auth.UserId;
+        }
+        catch (Exception)
+        {
+            userID = "c05c61eb-65e4-4223-915a-fe72b0c9ece1"; // Default user
+        }
+
+        UserSettingsRepository userSettingsRepo = sp.GetService<UserSettingsRepository>();
+        IEnumerable<UserSettings> settings = await userSettingsRepo.FindSettingsByUserIdAsync(userID);
+
+        foreach (var setting in settings)
+        {
+            return setting;
+        }
+
+        return null;
     }
 
     /// <summary>

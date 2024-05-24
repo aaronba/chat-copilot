@@ -7,6 +7,7 @@ import { PlanState, ProposedPlan } from '../../../libs/models/Plan';
 import { getPlanGoal } from '../../../libs/utils/PlanUtils';
 import { useAppDispatch, useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
+import { FeatureKeys } from '../../../redux/features/app/AppState';
 import { updateMessageProperty } from '../../../redux/features/conversations/conversationsSlice';
 import { PlanBody } from './PlanBody';
 
@@ -41,6 +42,7 @@ export const PlanViewer: React.FC<PlanViewerProps> = ({ message, messageIndex })
     const classes = usePlanViewClasses();
     const dispatch = useAppDispatch();
     const { selectedId } = useAppSelector((state: RootState) => state.conversations);
+    const { features } = useAppSelector((state: RootState) => state.app);
     const chat = useChat();
 
     // Track original plan from user message
@@ -70,7 +72,11 @@ export const PlanViewer: React.FC<PlanViewerProps> = ({ message, messageIndex })
             }),
         );
 
-        await chat.processPlan(selectedId, planState, updatedPlan);
+        let deploymentName = '';
+        if (features[FeatureKeys.DeploymentGPT35].enabled) deploymentName = 'gpt-35-turbo';
+        else if (features[FeatureKeys.DeploymentGPT4].enabled) deploymentName = 'gpt-4';
+
+        await chat.processPlan(selectedId, deploymentName, planState, updatedPlan);
     };
 
     return (

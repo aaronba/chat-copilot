@@ -1,6 +1,7 @@
 import { Divider, Switch, Text, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { useCallback } from 'react';
 import { AuthHelper } from '../../../libs/auth/AuthHelper';
+import { useUserSettings } from '../../../libs/hooks/useUserSettings';
 import { useAppDispatch, useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
 import { FeatureKeys, Setting } from '../../../redux/features/app/AppState';
@@ -28,16 +29,45 @@ export const SettingSection: React.FC<ISettingsSectionProps> = ({ setting, conte
     const classes = useClasses();
     const { features } = useAppSelector((state: RootState) => state.app);
     const dispatch = useAppDispatch();
-    let togglingDeployment = false;
+    const userSettingsHandler = useUserSettings();
 
     const onFeatureChange = useCallback(
         (featureKey: FeatureKeys) => {
-            dispatch(toggleFeatureFlag(featureKey));
-            if (featureKey === FeatureKeys.MultiUserChat) {
-                dispatch(toggleMultiUserConversations());
+            if (featureKey === FeatureKeys.DeploymentGPT35) {
+                dispatch(toggleFeatureFlag(featureKey));
+
+                if (!features[featureKey].enabled && features[FeatureKeys.DeploymentGPT4].enabled) {
+                    dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT4));
+
+                    // void userSettingsHandler.reloadAppConfig(true, 'gpt-35-turbo').then(() => {});
+                }
+                if (features[featureKey].enabled && !features[FeatureKeys.DeploymentGPT4].enabled) {
+                    dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT4));
+
+                    // void userSettingsHandler.reloadAppConfig(true, 'gpt-35-turbo').then(() => {});
+                }
+            } else if (featureKey === FeatureKeys.DeploymentGPT4) {
+                dispatch(toggleFeatureFlag(featureKey));
+
+                if (!features[featureKey].enabled && features[FeatureKeys.DeploymentGPT35].enabled) {
+                    dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT35));
+
+                    // void userSettingsHandler.reloadAppConfig(true, 'gpt-35-turbo').then(() => {});
+                }
+                if (features[featureKey].enabled && !features[FeatureKeys.DeploymentGPT35].enabled) {
+                    dispatch(toggleFeatureFlag(FeatureKeys.DeploymentGPT35));
+
+                    // void userSettingsHandler.reloadAppConfig(true, 'gpt-35-turbo').then(() => {});
+                }
+            } else {
+                dispatch(toggleFeatureFlag(featureKey));
+
+                if (featureKey === FeatureKeys.MultiUserChat) {
+                    dispatch(toggleMultiUserConversations());
+                }
             }
         },
-        [dispatch],
+        [dispatch, features, userSettingsHandler],
     );
 
     return (
@@ -56,39 +86,34 @@ export const SettingSection: React.FC<ISettingsSectionProps> = ({ setting, conte
                     const disableControl = !!feature.inactive;
 
                     return (
-                        <div key={key} className={classes.feature}>
-                            <Switch
-                                label={feature.label}
-                                checked={feature.enabled}
-                                disabled={
-                                    disableControl || (key === FeatureKeys.MultiUserChat && !AuthHelper.isAuthAAD())
-                                }
-                                onChange={() => {
-                                    onFeatureChange(key);
-
-                                    if (!togglingDeployment) {
-                                        togglingDeployment = true;
-                                        if (key === FeatureKeys.DeploymentGPT35) {
-                                            onFeatureChange(FeatureKeys.DeploymentGPT4);
-                                        } else if (key === FeatureKeys.DeploymentGPT4) {
-                                            onFeatureChange(FeatureKeys.DeploymentGPT35);
+                        <>
+                            {key !== FeatureKeys.DeploymentGPT35 && key !== FeatureKeys.DeploymentGPT4 && (
+                                <div key={key} className={classes.feature}>
+                                    <Switch
+                                        label={feature.label}
+                                        checked={feature.enabled}
+                                        disabled={
+                                            disableControl ||
+                                            (key === FeatureKeys.MultiUserChat && !AuthHelper.isAuthAAD())
                                         }
-                                        togglingDeployment = false;
-                                    }
-                                }}
-                                data-testid={feature.label}
-                            />
-                            <Text
-                                className={classes.featureDescription}
-                                style={{
-                                    color: disableControl
-                                        ? tokens.colorNeutralForegroundDisabled
-                                        : tokens.colorNeutralForeground2,
-                                }}
-                            >
-                                {feature.description}
-                            </Text>
-                        </div>
+                                        onChange={() => {
+                                            onFeatureChange(key);
+                                        }}
+                                        data-testid={feature.label}
+                                    />
+                                    <Text
+                                        className={classes.featureDescription}
+                                        style={{
+                                            color: disableControl
+                                                ? tokens.colorNeutralForegroundDisabled
+                                                : tokens.colorNeutralForeground2,
+                                        }}
+                                    >
+                                        {feature.description}
+                                    </Text>
+                                </div>
+                            )}
+                        </>
                     );
                 })}
             </div>

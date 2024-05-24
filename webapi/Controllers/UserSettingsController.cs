@@ -63,9 +63,14 @@ public class UserSettingsController : ControllerBase
                 return this.Ok(newUserSettings);  // Only 1 record per user id
             }
 
-            this._logger.LogDebug("User settings record found for: {0}", userId);
+            this._logger.LogInformation("User logged in and retrieved settings record for: {0}", userId);
             foreach (var setting in settings)
             {
+                if (setting.DeploymentGPT35 != true && setting.DeploymentGPT4 != true)
+                {
+                    setting.DeploymentGPT35 = true; // Default value
+                }
+
                 UserSettings us = new(setting.UserId, setting.DarkMode, setting.Planners, setting.Personas, setting.SimplifiedChatExperience,
                 setting.AzureContentSafety, setting.AzureAISearch, setting.ExportChatSessions, setting.LiveChatSessionSharing,
                 setting.FeedbackFromUser, setting.DeploymentGPT35, setting.DeploymentGPT4);
@@ -124,6 +129,10 @@ public class UserSettingsController : ControllerBase
                 setting!.FeedbackFromUser = msgParameters.feedbackFromUser;
                 setting!.DeploymentGPT35 = msgParameters.deploymentGPT35;
                 setting!.DeploymentGPT4 = msgParameters.deploymentGPT4;
+                if (setting.DeploymentGPT35 != true && setting.DeploymentGPT4 != true)
+                {
+                    setting.DeploymentGPT35 = true; // Default value
+                }
                 await this._userSettingsRepository.UpsertAsync(setting);
 
                 return this.Ok(setting);

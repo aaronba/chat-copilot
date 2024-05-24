@@ -42,6 +42,7 @@ export interface GetResponseOptions {
     messageType: ChatMessageType;
     value: string;
     chatId: string;
+    deploymentName: string;
     kernelArguments?: IAskVariables[];
     processPlan?: boolean;
 }
@@ -115,7 +116,14 @@ export const useChat = () => {
         }
     };
 
-    const getResponse = async ({ messageType, value, chatId, kernelArguments, processPlan }: GetResponseOptions) => {
+    const getResponse = async ({
+        messageType,
+        value,
+        chatId,
+        deploymentName,
+        kernelArguments,
+        processPlan,
+    }: GetResponseOptions) => {
         const chatInput: IChatMessage = {
             chatId: chatId,
             timestamp: new Date().getTime(),
@@ -151,6 +159,7 @@ export const useChat = () => {
                 .getBotResponseAsync(
                     ask,
                     await AuthHelper.getSKaaSAccessToken(instance, inProgress),
+                    deploymentName,
                     getEnabledPlugins(),
                     processPlan,
                 )
@@ -441,7 +450,13 @@ export const useChat = () => {
             });
     };
 
-    const processPlan = async (chatId: string, planState: PlanState, serializedPlan: string, planGoal?: string) => {
+    const processPlan = async (
+        chatId: string,
+        deploymentName: string,
+        planState: PlanState,
+        serializedPlan: string,
+        planGoal?: string,
+    ) => {
         const kernelArguments: ContextVariable[] = [
             {
                 key: 'proposedPlan',
@@ -463,6 +478,7 @@ export const useChat = () => {
         await getResponse({
             value: message,
             kernelArguments,
+            deploymentName: deploymentName,
             messageType: ChatMessageType.Message,
             chatId: chatId,
             processPlan: true,
