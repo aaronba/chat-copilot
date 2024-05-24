@@ -109,7 +109,7 @@ export const Features = {
         enabled: false,
         label: 'Planners',
         description: 'The Plans tab is hidden until you turn this on',
-        inactive: false,
+        inactive: true,
     },
     [FeatureKeys.Personas]: {
         enabled: false,
@@ -173,7 +173,7 @@ export const Settings = [
     {
         // Basic settings has to stay at the first index. Add all new settings to end of array.
         title: 'Basic',
-        features: [FeatureKeys.DarkMode, FeatureKeys.Planners, FeatureKeys.Personas],
+        features: [FeatureKeys.DarkMode, FeatureKeys.Personas],
         stackVertically: true,
     },
     {
