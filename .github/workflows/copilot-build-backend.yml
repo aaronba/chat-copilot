@@ -3,7 +3,7 @@ name: copilot-build-backend
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main"]
+    branches: ["aaronba-frontend-actions-build"]
     paths:
       - "webapi/**"
   workflow_call:
