@@ -1,7 +1,6 @@
 import { Divider, Switch, Text, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { useCallback } from 'react';
 import { AuthHelper } from '../../../libs/auth/AuthHelper';
-import { useUserSettings } from '../../../libs/hooks/useUserSettings';
 import { useAppDispatch, useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
 import { FeatureKeys, Setting } from '../../../redux/features/app/AppState';
@@ -29,7 +28,7 @@ export const SettingSection: React.FC<ISettingsSectionProps> = ({ setting, conte
     const classes = useClasses();
     const { features } = useAppSelector((state: RootState) => state.app);
     const dispatch = useAppDispatch();
-    const userSettingsHandler = useUserSettings();
+    //const userSettingsHandler = useUserSettings();
 
     const onFeatureChange = useCallback(
         (featureKey: FeatureKeys) => {
@@ -67,7 +66,7 @@ export const SettingSection: React.FC<ISettingsSectionProps> = ({ setting, conte
                 }
             }
         },
-        [dispatch, features, userSettingsHandler],
+        [dispatch, features],
     );
 
     return (
