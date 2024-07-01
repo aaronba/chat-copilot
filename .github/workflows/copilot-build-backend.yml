@@ -3,7 +3,7 @@ name: copilot-build-backend
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main"]
+    branches: ["upstream-latest-updates"]
     paths:
       - "webapi/**"
   workflow_call:
