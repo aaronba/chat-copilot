@@ -1,7 +1,6 @@
 name: copilot-build-images
 
 on:
-  workflow_dispatch:
   workflow_call:
     inputs:
       REACT_APP_BACKEND_URI:
