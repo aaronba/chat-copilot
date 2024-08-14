@@ -1,10 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using CopilotChat.WebApi.Hubs;
 using CopilotChat.WebApi.Models.Response;
@@ -14,13 +15,20 @@ using CopilotChat.WebApi.Services;
 using CopilotChat.WebApi.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Plugins.Core;
+using Search;
+using Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Models;
 
 namespace CopilotChat.WebApi.Extensions;
 
@@ -69,7 +77,7 @@ internal static class SemanticKernelExtensions
 
         // Add any additional setup needed for the kernel.
         // Uncomment the following line and pass in a custom hook for any complimentary setup of the kernel.
-        // builder.Services.AddKernelSetupHook(customHook);
+        builder.Services.AddKernelSetupHook(RegisterPluginsAsync);
 
         return builder;
     }
@@ -120,6 +128,29 @@ internal static class SemanticKernelExtensions
     private static void InitializeKernelProvider(this WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>()));
+
+
+        //        // Azure AI Search configuration
+        Uri endpoint = new Uri(builder.Configuration.GetConnectionString("AISearchEndpoint"));
+        AzureKeyCredential keyCredential = new AzureKeyCredential(builder.Configuration.GetConnectionString("AISearchKey"));
+
+        // Create kernel builder
+        //        IKernelBuilder kernelBuilder = Kernel.CreateBuilder();
+
+        // SearchIndexClient from Azure .NET SDK to perform search operations.
+                builder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+
+        // Custom AzureAISearchService to configure request parameters and make a request.
+                builder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
+
+        // Embedding generation service to convert string query to vector
+        builder.Services.AddAzureOpenAITextEmbeddingGeneration(
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsDeploymentName"),
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsEndpoint"),
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsApiKey"));
+
+
+
     }
 
     /// <summary>
@@ -179,8 +210,24 @@ internal static class SemanticKernelExtensions
                 {
                     try
                     {
-                        var plugin = Activator.CreateInstance(classType);
-                        kernel.ImportPluginFromObject(plugin!, classType.Name!);
+                       
+                        if (classType.Name == "MyAzureAISearchPlugin")
+                        {
+                            kernel.ImportPluginFromObject(
+                                new Search.MyAzureAISearchPlugin(
+                                    textEmbeddingGenerationService: sp.GetRequiredService<ITextEmbeddingGenerationService>(),
+                                    searchService: sp.GetRequiredService<IAzureAISearchService>()),
+                                    nameof(MyAzureAISearchPlugin)
+                                    );
+                            
+                            // SearchIndexClient from Azure .NET SDK to perform search operations.
+                            //kernelBuilder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+                        }
+                        else
+                        {
+                            var plugin = Activator.CreateInstance(classType);
+                            kernel.ImportPluginFromObject(plugin!, classType.Name!);
+                        }
                     }
                     catch (KernelException ex)
                     {
