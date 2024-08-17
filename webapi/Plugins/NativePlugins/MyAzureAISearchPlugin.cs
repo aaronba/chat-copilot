@@ -20,9 +20,9 @@ namespace Search;
 
 //public class AzureAISearchPlugin(ITestOutputHelper output) : BaseTest(output)
 //{
-    /// <summary>
-    /// Shows how to register Azure AI Search service as a plugin and work with custom index schema.
-    /// </summary>
+/// <summary>
+/// Shows how to register Azure AI Search service as a plugin and work with custom index schema.
+/// </summary>
 //    [Fact]
 //    public async Task AzureAISearchPluginAsync()
 //    {
@@ -30,40 +30,40 @@ namespace Search;
 //        Uri endpoint = new(TestConfiguration.AzureAISearch.Endpoint);
 //        AzureKeyCredential keyCredential = new(TestConfiguration.AzureAISearch.ApiKey);
 
-        // Create kernel builder
+// Create kernel builder
 //        IKernelBuilder kernelBuilder = Kernel.CreateBuilder();
 
-        // SearchIndexClient from Azure .NET SDK to perform search operations.
+// SearchIndexClient from Azure .NET SDK to perform search operations.
 //        kernelBuilder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
 
-        // Custom AzureAISearchService to configure request parameters and make a request.
+// Custom AzureAISearchService to configure request parameters and make a request.
 //        kernelBuilder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
 
-        // Embedding generation service to convert string query to vector
+// Embedding generation service to convert string query to vector
 //        kernelBuilder.AddOpenAITextEmbeddingGeneration("text-embedding-ada-002", TestConfiguration.OpenAI.ApiKey);
 
-        // Chat completion service to ask questions based on data from Azure AI Search index.
+// Chat completion service to ask questions based on data from Azure AI Search index.
 //        kernelBuilder.AddOpenAIChatCompletion("gpt-4", TestConfiguration.OpenAI.ApiKey);
 
-        // Register Azure AI Search Plugin
+// Register Azure AI Search Plugin
 //        kernelBuilder.Plugins.AddFromType<MyAzureAISearchPlugin>();
 
-        // Create kernel
+// Create kernel
 //        var kernel = kernelBuilder.Build();
 
-        // Query with index name
-        // The final prompt will look like this "Emily and David are...(more text based on data). Who is David?".
+// Query with index name
+// The final prompt will look like this "Emily and David are...(more text based on data). Who is David?".
 //        var result1 = await kernel.InvokePromptAsync(
 //            "{{search 'David' collection='index-1'}} Who is David?");
 
 //        Console.WriteLine(result1);
 
-        // Query with index name and search fields.
-        // Search fields are optional. Since one index may contain multiple searchable fields,
-        // it's possible to specify which fields should be used during search for each request.
+// Query with index name and search fields.
+// Search fields are optional. Since one index may contain multiple searchable fields,
+// it's possible to specify which fields should be used during search for each request.
 //        var arguments = new KernelArguments { ["searchFields"] = JsonSerializer.Serialize(new List<string> { "vector" }) };
 
-        // The final prompt will look like this "Elara is...(more text based on data). Who is Elara?".
+// The final prompt will look like this "Elara is...(more text based on data). Who is Elara?".
 //        var result2 = await kernel.InvokePromptAsync(
 //            "{{search 'Story' collection='index-2' searchFields=$searchFields}} Who is Elara?",
 //            arguments);
@@ -71,55 +71,36 @@ namespace Search;
 //        Console.WriteLine(result2);
 //    }
 
-    #region Index Schema
+#region Index Schema
 
-    /// <summary>
-    /// Custom index schema. It may contain any fields that exist in search index.
-    /// </summary>
-    public class IndexSchema
-    {
-        [JsonPropertyName("@search.score")]
-        public float AtSearchScore { get; set; }
-
-        [JsonPropertyName("content")]
-        public string Content { get; set; }
-
-        [JsonPropertyName("filepath")]
-        public string FilePath { get; set; }
-
-        [JsonPropertyName("title")]
-        public string Title { get; set; }
-
-        [JsonPropertyName("url")]
-        public string Url { get; set; }
-
-        [JsonPropertyName("chunk_id")]
-        public string ChunkId { get; set; }
-
-        [JsonPropertyName("contentVector")]
-        public ReadOnlyMemory<float> ContentVector { get; set; }
-
-}
-
+/// <summary>
+/// Custom index schema. It may contain any fields that exist in search index.
+/// </summary>
 public class IndexSchema
 {
     [JsonPropertyName("@search.score")]
     public float AtSearchScore { get; set; }
 
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
+    [JsonPropertyName("content")]
+    public string Content { get; set; }
 
-    //[JsonPropertyName("tags")]
-    //public string Tags { get; set; }
+    [JsonPropertyName("filepath")]
+    public string FilePath { get; set; }
 
-    [JsonPropertyName("payload")]
-    public string Payload { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 
-    [JsonPropertyName("embedding")]
+    [JsonPropertyName("url")]
+    public string Url { get; set; }
+
+    [JsonPropertyName("chunk_id")]
+    public string ChunkId { get; set; }
+
+    [JsonPropertyName("contentVector")]
     public ReadOnlyMemory<float> ContentVector { get; set; }
 
-   
 }
+
 
 #endregion
 
@@ -129,51 +110,51 @@ public class IndexSchema
 /// Abstraction for Azure AI Search service.
 /// </summary>
 public interface IAzureAISearchService
+{
+    Task<string?> SearchAsync(
+        string collectionName,
+        ReadOnlyMemory<float> vector,
+        List<string>? searchFields = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Implementation of Azure AI Search service.
+/// </summary>
+public class AzureAISearchService(SearchIndexClient indexClient) : IAzureAISearchService
+{
+    private readonly List<string> _defaultVectorFields = ["embedding"];
+
+    private readonly SearchIndexClient _indexClient = indexClient;
+
+    public async Task<string?> SearchAsync(
+        string collectionName,
+        ReadOnlyMemory<float> vector,
+        List<string>? searchFields = null,
+        CancellationToken cancellationToken = default)
     {
-        Task<string?> SearchAsync(
-            string collectionName,
-            ReadOnlyMemory<float> vector,
-            List<string>? searchFields = null,
-            CancellationToken cancellationToken = default);
-    }
+        // Get client for search operations
+        SearchClient searchClient = this._indexClient.GetSearchClient(collectionName);
 
-    /// <summary>
-    /// Implementation of Azure AI Search service.
-    /// </summary>
-    public  class AzureAISearchService(SearchIndexClient indexClient) : IAzureAISearchService
-    {
-        private readonly List<string> _defaultVectorFields = ["embedding"];
+        // Use search fields passed from Plugin or default fields configured in this class.
+        List<string> fields = searchFields is { Count: > 0 } ? searchFields : this._defaultVectorFields;
 
-        private readonly SearchIndexClient _indexClient = indexClient;
+        // Configure request parameters
+        VectorizedQuery vectorQuery = new(vector);
+        fields.ForEach(vectorQuery.Fields.Add);
 
-        public async Task<string?> SearchAsync(
-            string collectionName,
-            ReadOnlyMemory<float> vector,
-            List<string>? searchFields = null,
-            CancellationToken cancellationToken = default)
+        SearchOptions searchOptions = new() { VectorSearch = new() { Queries = { vectorQuery } } };
+
+        // Perform search request
+        Response<SearchResults<IndexSchema>> response = await searchClient.SearchAsync<IndexSchema>(searchOptions, cancellationToken);
+
+        List<IndexSchema> results = [];
+
+        // Collect search results
+        await foreach (SearchResult<IndexSchema> result in response.Value.GetResultsAsync())
         {
-            // Get client for search operations
-            SearchClient searchClient = this._indexClient.GetSearchClient(collectionName);
-
-            // Use search fields passed from Plugin or default fields configured in this class.
-            List<string> fields = searchFields is { Count: > 0 } ? searchFields : this._defaultVectorFields;
-
-            // Configure request parameters
-            VectorizedQuery vectorQuery = new(vector);
-            fields.ForEach(vectorQuery.Fields.Add);
-
-            SearchOptions searchOptions = new() { VectorSearch = new() { Queries = { vectorQuery } } };
-
-            // Perform search request
-            Response<SearchResults<IndexSchema>> response = await searchClient.SearchAsync<IndexSchema>(searchOptions, cancellationToken);
-
-            List<IndexSchema> results = [];
-
-            // Collect search results
-            await foreach (SearchResult<IndexSchema> result in response.Value.GetResultsAsync())
-            {
-                results.Add(result.Document);
-            }
+            results.Add(result.Document);
+        }
 
         // Return text from first result.
         // In real applications, the logic can check document score, sort and return top N results
@@ -187,7 +168,7 @@ public interface IAzureAISearchService
         // Return the JSON string
         return jsonString;
     }
-    }
+}
 
 #endregion
 
@@ -213,25 +194,25 @@ public class MyAzureAISearchPlugin
         _searchService = searchService;
     }
     [KernelFunction("Search")]
-        public async Task<string> SearchAsync(
+    public async Task<string> SearchAsync(
             string query,
 
             string collection,
 
             List<string>? searchFields = null,
             CancellationToken cancellationToken = default)
-        {
-            // Convert string query to vector
-            ReadOnlyMemory<float> embedding = await this._textEmbeddingGenerationService.GenerateEmbeddingAsync(query, cancellationToken: cancellationToken);
+    {
+        // Convert string query to vector
+        ReadOnlyMemory<float> embedding = await this._textEmbeddingGenerationService.GenerateEmbeddingAsync(query, cancellationToken: cancellationToken);
 
-            // Perform search
+        // Perform search
 
-            var jsonString = await this._searchService.SearchAsync(collection, embedding, searchFields, cancellationToken) ?? string.Empty;
-        
+        var jsonString = await this._searchService.SearchAsync(collection, embedding, searchFields, cancellationToken) ?? string.Empty;
+
         return jsonString;
 
     }
 }
 
-    #endregion
+#endregion
 //}

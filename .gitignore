@@ -498,3 +498,6 @@ tmp/*
 # Custom plugins in default directories
 */Skills/NativePlugins
 */Skills/SemanticPlugins
+/webapi/appsettings.json
+/webapi/appsettings.json
+/webapi/appsettings.json

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System;
 using System.IO;
@@ -29,6 +29,9 @@ using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Models;
+using StyleGuide;
+using CopilotChat.WebApi.Plugins.NativePlugins.StyleGuide;
+using Microsoft.Azure.Cosmos;
 
 namespace CopilotChat.WebApi.Extensions;
 
@@ -134,14 +137,13 @@ internal static class SemanticKernelExtensions
         Uri endpoint = new Uri(builder.Configuration.GetConnectionString("AISearchEndpoint"));
         AzureKeyCredential keyCredential = new AzureKeyCredential(builder.Configuration.GetConnectionString("AISearchKey"));
 
-        // Create kernel builder
-        //        IKernelBuilder kernelBuilder = Kernel.CreateBuilder();
 
         // SearchIndexClient from Azure .NET SDK to perform search operations.
-                builder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+        builder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
 
         // Custom AzureAISearchService to configure request parameters and make a request.
-                builder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
+        builder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
+
 
         // Embedding generation service to convert string query to vector
         builder.Services.AddAzureOpenAITextEmbeddingGeneration(
@@ -150,7 +152,32 @@ internal static class SemanticKernelExtensions
             builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsApiKey"));
 
 
+        ConfigureStyleGuide(builder);
 
+
+
+    }
+
+    private static void ConfigureStyleGuide(WebApplicationBuilder builder)
+    {
+        //StyleGuide
+        string cosmos_endpoint = builder.Configuration.GetSection("StyleGuide").GetSection("CosmosDB_Endpoint").Value;
+        string cosmos_key = builder.Configuration.GetSection("StyleGuide").GetSection("CosmosDB_Key").Value;
+
+        var cosmosSerializationOptions = new CosmosSerializationOptions
+        {
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        };
+
+        CosmosClientOptions cosmosClientOptions = new() { ConnectionMode = ConnectionMode.Gateway, SerializerOptions = cosmosSerializationOptions };
+
+
+        builder.Services.AddSingleton<CosmosClient>((_) => new CosmosClient(cosmos_endpoint, cosmos_key, cosmosClientOptions));
+
+
+        builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
+
+        // End of Style Guide configuration
     }
 
     /// <summary>
@@ -196,6 +223,7 @@ internal static class SemanticKernelExtensions
         {
             // Loop through all the files in the directory that have the .cs extension
             var pluginFiles = Directory.GetFiles(options.NativePluginsDirectory, "*.cs");
+            pluginFiles = pluginFiles.Concat(Directory.GetFiles($"{options.NativePluginsDirectory}/StyleGuide", "*.cs")).ToArray();
             foreach (var file in pluginFiles)
             {
                 // Parse the name of the class from the file name (assuming it matches)
@@ -210,7 +238,7 @@ internal static class SemanticKernelExtensions
                 {
                     try
                     {
-                       
+
                         if (classType.Name == "MyAzureAISearchPlugin")
                         {
                             kernel.ImportPluginFromObject(
@@ -219,9 +247,16 @@ internal static class SemanticKernelExtensions
                                     searchService: sp.GetRequiredService<IAzureAISearchService>()),
                                     nameof(MyAzureAISearchPlugin)
                                     );
-                            
+
                             // SearchIndexClient from Azure .NET SDK to perform search operations.
                             //kernelBuilder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+                        }
+                        else if (classType.Name == "StyleGuideResultsPlugin")
+                        {
+                            kernel.ImportPluginFromObject(
+                                new StyleGuideResultsPlugin(kernel,
+                                cosmosDBService: sp.GetRequiredService<ICosmosDBService>()),
+                                nameof(StyleGuideResultsPlugin));
                         }
                         else
                         {
