@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+import { BuiltInPlugin } from '../models/BuiltInPlugin';
 import { PluginManifest } from '../models/PluginManifest';
 import { BaseService } from './BaseService';
 
@@ -12,6 +13,16 @@ export class PluginService extends BaseService {
                 query: new URLSearchParams({
                     manifestDomain: manifestDomain,
                 }),
+            },
+            accessToken,
+        );
+    };
+
+    public getAllPluginsAsync = async (accessToken: string): Promise<BuiltInPlugin[]> => {
+        return await this.getResponseAsync<BuiltInPlugin[]>(
+            {
+                commandPath: 'plugins',
+                method: 'GET',
             },
             accessToken,
         );

@@ -38,6 +38,11 @@ export const usePlugins = () => {
         [pluginService, inProgress, instance],
     );
 
+    const getAllPlugins = React.useCallback(async () => {
+        const accessToken = await AuthHelper.getSKaaSAccessToken(instance, inProgress);
+        return await pluginService.getAllPluginsAsync(accessToken);
+    }, [pluginService, inProgress, instance]);
+
     const setPluginStateAsync = async (chatId: string, pluginName: string, enabled: boolean): Promise<void> => {
         const accessToken = await AuthHelper.getSKaaSAccessToken(instance, inProgress);
         await pluginService.setPluginStateAsync(chatId, pluginName, accessToken, enabled);
@@ -46,6 +51,7 @@ export const usePlugins = () => {
     return {
         addCustomPlugin,
         getPluginManifest,
+        getAllPlugins,
         setPluginStateAsync,
     };
 };

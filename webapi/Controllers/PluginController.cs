@@ -2,19 +2,26 @@
 
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using CopilotChat.WebApi.Auth;
+using CopilotChat.WebApi.Extensions;
 using CopilotChat.WebApi.Hubs;
+using CopilotChat.WebApi.Models.Response;
 using CopilotChat.WebApi.Models.Storage;
 using CopilotChat.WebApi.Options;
 using CopilotChat.WebApi.Storage;
 using CopilotChat.WebApi.Utilities;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Graph;
+using Microsoft.SemanticKernel;
 
 namespace CopilotChat.WebApi.Controllers;
 
@@ -30,16 +37,33 @@ public class PluginController : ControllerBase
     private readonly IDictionary<string, Plugin> _availablePlugins;
     private readonly ChatSessionRepository _sessionRepository;
 
+    private readonly Kernel _kernel;
+
     public PluginController(
         ILogger<PluginController> logger,
         IHttpClientFactory httpClientFactory,
         IDictionary<string, Plugin> availablePlugins,
-        ChatSessionRepository sessionRepository)
+        ChatSessionRepository sessionRepository,
+        Kernel kernel)
     {
         this._logger = logger;
         this._httpClientFactory = httpClientFactory;
         this._availablePlugins = availablePlugins;
         this._sessionRepository = sessionRepository;
+        this._kernel = kernel;
+    }
+
+    /// <summary>
+    /// Fetches the list of available plugins.
+    /// </summary>
+    /// <returns>A List of the plugin names</returns>
+    [HttpGet]
+    [Route("plugins")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Plugins()
+    {
+
+        return this.Ok(this._kernel?.Plugins?.Select(p => new { Name = p.Name }));
     }
 
     /// <summary>
@@ -49,6 +73,7 @@ public class PluginController : ControllerBase
     /// <returns>The plugin's manifest JSON.</returns>
     [HttpGet]
     [Route("pluginManifests")]
+
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPluginManifest([FromQuery] Uri manifestDomain)
     {

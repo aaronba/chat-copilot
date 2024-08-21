@@ -11,11 +11,16 @@ export class DocumentImportService extends BaseService {
         useContentSafety: boolean,
         accessToken: string,
         uploadToGlobal: boolean,
+        isForStyleGuideValidation: boolean,
     ) => {
         const formData = new FormData();
         formData.append('useContentSafety', useContentSafety.toString());
         for (const document of documents) {
             formData.append('formFiles', document);
+        }
+
+        if (isForStyleGuideValidation) {
+            formData.append('isForStyleGuideValidation', 'true');
         }
 
         return await this.getResponseAsync<IChatMessage>(

@@ -36,11 +36,12 @@ import {
     DocumentTextRegular,
     FluentIconsProps,
     GlobeAdd20Regular,
+    GlobeSurfaceRegular,
 } from '@fluentui/react-icons';
 import * as React from 'react';
 import { useRef } from 'react';
 import { Constants } from '../../../Constants';
-import { useChat, useFile } from '../../../libs/hooks';
+import { useChat, useFile, usePlugins } from '../../../libs/hooks';
 import { ChatMemorySource } from '../../../libs/models/ChatMemorySource';
 import { useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
@@ -101,8 +102,27 @@ export const DocumentsTab: React.FC = () => {
     const [resources, setResources] = React.useState<ChatMemorySource[]>([]);
     const localDocumentFileRef = useRef<HTMLInputElement | null>(null);
     const globalDocumentFileRef = useRef<HTMLInputElement | null>(null);
+    const styleGuideDocumentFileRef = useRef<HTMLInputElement | null>(null);
+
+    const [isStyleGuideAvailable, setIsStyleGuideAvailable] = React.useState<boolean>(false);
+
+    const { getAllPlugins } = usePlugins();
 
     React.useEffect(() => {
+        const onMenuLoaded = () => {
+            const styleGuidePluginName = process.env.REACT_APP_STYLE_GUIDE_PLUGIN_NAME ?? 'StyleGuideResultsPlugin';
+
+            void getAllPlugins().then((plugins) => {
+                plugins.forEach((plugin) => {
+                    if (plugin.name === styleGuidePluginName) {
+                        setIsStyleGuideAvailable(true);
+                        return;
+                    }
+                });
+            });
+        };
+        onMenuLoaded();
+
         if (!conversations[selectedId].disabled) {
             const importingResources = importingDocuments
                 ? importingDocuments.map((document, index) => {
@@ -156,6 +176,16 @@ export const DocumentsTab: React.FC = () => {
                         void fileHandler.handleImport(selectedId, globalDocumentFileRef, true);
                     }}
                 />
+                <input
+                    type="file"
+                    ref={styleGuideDocumentFileRef}
+                    style={{ display: 'none' }}
+                    accept={Constants.app.importTypes}
+                    multiple={true}
+                    onChange={() => {
+                        void fileHandler.handleImport(selectedId, styleGuideDocumentFileRef, true, true);
+                    }}
+                />
                 <Menu>
                     <MenuTrigger disableButtonEnhancement>
                         <Tooltip content="Embed file into chat session" relationship="label">
@@ -195,6 +225,16 @@ export const DocumentsTab: React.FC = () => {
                             >
                                 New global document
                             </MenuItem>
+                            {conversations[selectedId].disabled ||
+                                (isStyleGuideAvailable && (
+                                    <MenuItem
+                                        data-testid="addNewLocalDoc"
+                                        icon={<GlobeSurfaceRegular />}
+                                        onClick={() => styleGuideDocumentFileRef.current?.click()}
+                                    >
+                                        New document for style validation
+                                    </MenuItem>
+                                ))}
                         </MenuList>
                     </MenuPopover>
                 </Menu>

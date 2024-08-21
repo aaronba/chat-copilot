@@ -16,6 +16,8 @@ public class DocumentImportForm
     /// </summary>
     public IEnumerable<IFormFile> FormFiles { get; set; } = Enumerable.Empty<IFormFile>();
 
+    public bool IsForStyleGuideValidation { get; set; }
+
     /// <summary>
     /// Flag indicating whether user has content safety enabled from the client.
     /// </summary>

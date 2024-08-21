@@ -51,6 +51,7 @@ internal static class SemanticKernelExtensions
     /// </summary>
     public delegate Task KernelSetupHook(IServiceProvider sp, Kernel kernel);
 
+
     /// <summary>
     /// Add Semantic Kernel services
     /// </summary>
@@ -132,11 +133,9 @@ internal static class SemanticKernelExtensions
     {
         builder.Services.AddSingleton(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>()));
 
-
         //        // Azure AI Search configuration
         Uri endpoint = new Uri(builder.Configuration.GetConnectionString("AISearchEndpoint"));
         AzureKeyCredential keyCredential = new AzureKeyCredential(builder.Configuration.GetConnectionString("AISearchKey"));
-
 
         // SearchIndexClient from Azure .NET SDK to perform search operations.
         builder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
@@ -144,17 +143,13 @@ internal static class SemanticKernelExtensions
         // Custom AzureAISearchService to configure request parameters and make a request.
         builder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
 
-
         // Embedding generation service to convert string query to vector
         builder.Services.AddAzureOpenAITextEmbeddingGeneration(
             builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsDeploymentName"),
             builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsEndpoint"),
             builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsApiKey"));
 
-
         ConfigureStyleGuide(builder);
-
-
 
     }
 
@@ -171,9 +166,7 @@ internal static class SemanticKernelExtensions
 
         CosmosClientOptions cosmosClientOptions = new() { ConnectionMode = ConnectionMode.Gateway, SerializerOptions = cosmosSerializationOptions };
 
-
         builder.Services.AddSingleton<CosmosClient>((_) => new CosmosClient(cosmos_endpoint, cosmos_key, cosmosClientOptions));
-
 
         builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
 

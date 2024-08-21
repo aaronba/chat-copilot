@@ -52,6 +52,7 @@ export const useFile = () => {
         chatId: string,
         documentFileRef: React.MutableRefObject<HTMLInputElement | null>,
         uploadToGlobal = false,
+        isForStyleGuideValidation = false,
         file?: File,
         dragAndDropFiles?: FileList,
     ) => {
@@ -68,7 +69,7 @@ export const useFile = () => {
             );
 
             if (filesArray.length > 0) {
-                await chat.importDocument(chatId, filesArray, uploadToGlobal);
+                await chat.importDocument(chatId, filesArray, uploadToGlobal, isForStyleGuideValidation);
             }
 
             dispatch(

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CopilotChat.WebApi.Extensions;
 using CopilotChat.WebApi.Hubs;
 using CopilotChat.WebApi.Services;
+using CopilotChat.WebApi.Storage;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.AspNetCore.Builder;
@@ -62,7 +63,8 @@ public sealed class Program
             .AddApplicationInsightsTelemetry(options => { options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]; })
             .AddSingleton<ITelemetryInitializer, AppInsightsUserTelemetryInitializerService>()
             .AddLogging(logBuilder => logBuilder.AddApplicationInsights())
-            .AddSingleton<ITelemetryService, AppInsightsTelemetryService>();
+            .AddSingleton<ITelemetryService, AppInsightsTelemetryService>()
+            .AddSingleton<IBlobStorageContext, BlobStorageContext>();
 
         TelemetryDebugWriter.IsTracingDisabled = Debugger.IsAttached;
 

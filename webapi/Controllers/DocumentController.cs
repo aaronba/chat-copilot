@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Azure.Messaging;
 using CopilotChat.WebApi.Auth;
 using CopilotChat.WebApi.Extensions;
 using CopilotChat.WebApi.Hubs;
@@ -16,10 +17,13 @@ using CopilotChat.WebApi.Options;
 using CopilotChat.WebApi.Services;
 using CopilotChat.WebApi.Storage;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Graph;
 using Microsoft.KernelMemory;
 
 namespace CopilotChat.WebApi.Controllers;
@@ -47,6 +51,7 @@ public class DocumentController : ControllerBase
     private readonly DocumentTypeProvider _documentTypeProvider;
     private readonly IAuthInfo _authInfo;
     private readonly IContentSafetyService _contentSafetyService;
+    private readonly IBlobStorageContext _blobStorageContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentImportController"/> class.
@@ -62,7 +67,8 @@ public class DocumentController : ControllerBase
         ChatMessageRepository messageRepository,
         ChatParticipantRepository participantRepository,
         DocumentTypeProvider documentTypeProvider,
-        IContentSafetyService contentSafetyService)
+        IContentSafetyService contentSafetyService,
+        IBlobStorageContext blobStorageContext)
     {
         this._logger = logger;
         this._options = documentMemoryOptions.Value;
@@ -75,6 +81,7 @@ public class DocumentController : ControllerBase
         this._documentTypeProvider = documentTypeProvider;
         this._authInfo = authInfo;
         this._contentSafetyService = contentSafetyService;
+        this._blobStorageContext = blobStorageContext;
     }
 
     /// <summary>
@@ -85,19 +92,54 @@ public class DocumentController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> DocumentImportAsync(
+    public async Task<IActionResult> DocumentImportAsync(
         [FromServices] IKernelMemory memoryClient,
         [FromServices] IHubContext<MessageRelayHub> messageRelayHubContext,
         [FromForm] DocumentImportForm documentImportForm)
     {
-        return this.DocumentImportAsync(
-            memoryClient,
-            messageRelayHubContext,
-            DocumentScopes.Global,
-            DocumentMemoryOptions.GlobalDocumentChatId,
-            documentImportForm
-        );
+
+        if (documentImportForm.IsForStyleGuideValidation)
+        {
+            //If the document uploaded is for style guide validation, then we don't need to store it in the memory.
+            // drop it in the style guide blob storage for the style guide parser to pick it up.
+
+            DocumentMessageContent documentMessageContent = new();
+
+            await Parallel.ForEachAsync(documentImportForm.FormFiles, async (formFile, token) =>
+          {
+              using var stream = formFile.OpenReadStream();
+              await this._blobStorageContext.UploadToBlobAsync(formFile.FileName, stream);
+
+
+              documentMessageContent.AddDocument(
+                                   formFile.FileName,
+                                   this.GetReadableByteString(formFile.Length),
+                                   false);
+
+          });
+            var chatMessage = CopilotChatMessage.CreateDocumentMessage(
+            this._authInfo.UserId,
+            this._authInfo.Name, // User name
+            DocumentMemoryOptions.GlobalDocumentChatId.ToString(),
+            documentMessageContent);
+
+
+            return this.Ok(chatMessage);
+
+        }
+        else
+        {
+            return await this.DocumentImportAsync(
+                        memoryClient,
+                        messageRelayHubContext,
+                        DocumentScopes.Global,
+                        DocumentMemoryOptions.GlobalDocumentChatId,
+                        documentImportForm
+                    );
+        }
+
     }
+
 
     /// <summary>
     /// Service API for importing a document.
