@@ -16,6 +16,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using CopilotChat.WebApi.Plugins.NativePlugins.StyleGuide.Pipeline;
 using Microsoft.Extensions.Configuration;
+using CopilotChat.WebApi.Attributes;
 
 namespace StyleGuide;
 
@@ -54,6 +55,7 @@ public class CosmosDBService(CosmosClient cosmosClient, IConfiguration config) :
 }
 
 
+[NativePlugin]
 public class StyleGuideResultsPlugin(Kernel kernel, ICosmosDBService cosmosDBService)
 {
 

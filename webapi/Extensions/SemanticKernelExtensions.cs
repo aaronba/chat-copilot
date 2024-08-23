@@ -32,6 +32,8 @@ using Azure.Search.Documents.Models;
 using StyleGuide;
 using CopilotChat.WebApi.Plugins.NativePlugins.StyleGuide;
 using Microsoft.Azure.Cosmos;
+using DocumentFormat.OpenXml.Office2010.PowerPoint;
+using CopilotChat.WebApi.Attributes;
 
 namespace CopilotChat.WebApi.Extensions;
 
@@ -214,59 +216,38 @@ internal static class SemanticKernelExtensions
         // Native plugins
         if (!string.IsNullOrWhiteSpace(options.NativePluginsDirectory))
         {
-            // Loop through all the files in the directory that have the .cs extension
-            var pluginFiles = Directory.GetFiles(options.NativePluginsDirectory, "*.cs");
-            pluginFiles = pluginFiles.Concat(Directory.GetFiles($"{options.NativePluginsDirectory}/StyleGuide", "*.cs")).ToArray();
-            foreach (var file in pluginFiles)
+
+            Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetCustomAttributes(typeof(NativePluginAttribute), false).Any()).ToList().ForEach(t =>
             {
-                // Parse the name of the class from the file name (assuming it matches)
-                var className = Path.GetFileNameWithoutExtension(file);
 
-                // Get the type of the class from the current assembly
-                var assembly = Assembly.GetExecutingAssembly();
-                var classType = assembly.GetTypes().FirstOrDefault(t => t.Name.Contains(className, StringComparison.CurrentCultureIgnoreCase));
-
-                // If the type is found, create an instance of the class using the default constructor
-                if (classType != null)
+                switch (t.Name)
                 {
-                    try
-                    {
+                    case "MyAzureAISearchPlugin":
+                        kernel.ImportPluginFromObject(
+                                            new Search.MyAzureAISearchPlugin(
+                                                textEmbeddingGenerationService: sp.GetRequiredService<ITextEmbeddingGenerationService>(),
+                                                searchService: sp.GetRequiredService<IAzureAISearchService>()),
+                                                nameof(MyAzureAISearchPlugin)
+                                                );
 
-                        if (classType.Name == "MyAzureAISearchPlugin")
-                        {
-                            kernel.ImportPluginFromObject(
-                                new Search.MyAzureAISearchPlugin(
-                                    textEmbeddingGenerationService: sp.GetRequiredService<ITextEmbeddingGenerationService>(),
-                                    searchService: sp.GetRequiredService<IAzureAISearchService>()),
-                                    nameof(MyAzureAISearchPlugin)
-                                    );
 
-                            // SearchIndexClient from Azure .NET SDK to perform search operations.
-                            //kernelBuilder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
-                        }
-                        else if (classType.Name == "StyleGuideResultsPlugin")
-                        {
-                            kernel.ImportPluginFromObject(
+                        break;
+                    case "StyleGuideResultsPlugin":
+                        kernel.ImportPluginFromObject(
                                 new StyleGuideResultsPlugin(kernel,
                                 cosmosDBService: sp.GetRequiredService<ICosmosDBService>()),
                                 nameof(StyleGuideResultsPlugin));
-                        }
-                        else
-                        {
-                            var plugin = Activator.CreateInstance(classType);
-                            kernel.ImportPluginFromObject(plugin!, classType.Name!);
-                        }
-                    }
-                    catch (KernelException ex)
+                        break;
+                    default:
                     {
-                        logger.LogError("Could not load plugin from file {File}: {Details}", file, ex.Message);
+                        var plugin = Activator.CreateInstance(t);
+                        kernel.ImportPluginFromObject(plugin!, t.Name!);
+                        break;
                     }
                 }
-                else
-                {
-                    logger.LogError("Class type not found. Make sure the class type matches exactly with the file name {FileName}", className);
-                }
-            }
+            });
+
+
         }
 
         return Task.CompletedTask;

@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
 using MongoDB.Bson;
+using CopilotChat.WebApi.Attributes;
 
 namespace Search;
 
@@ -181,6 +182,7 @@ public class AzureAISearchService(SearchIndexClient indexClient) : IAzureAISearc
 /// </summary>
 
 
+[NativePlugin]
 public class MyAzureAISearchPlugin
 {
     private readonly ITextEmbeddingGenerationService _textEmbeddingGenerationService;
@@ -190,8 +192,8 @@ public class MyAzureAISearchPlugin
         ITextEmbeddingGenerationService textEmbeddingGenerationService,
         IAzureAISearchService searchService)
     {
-        _textEmbeddingGenerationService = textEmbeddingGenerationService;
-        _searchService = searchService;
+        this._textEmbeddingGenerationService = textEmbeddingGenerationService;
+        this._searchService = searchService;
     }
     [KernelFunction("Search")]
     public async Task<string> SearchAsync(
