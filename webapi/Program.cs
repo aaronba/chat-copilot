@@ -64,7 +64,7 @@ public sealed class Program
             .AddSingleton<ITelemetryInitializer, AppInsightsUserTelemetryInitializerService>()
             .AddLogging(logBuilder => logBuilder.AddApplicationInsights())
             .AddSingleton<ITelemetryService, AppInsightsTelemetryService>()
-            .AddSingleton<IBlobStorageContext, BlobStorageContext>();
+            .AddSingleton<IStyleGuideBlobStorageContext, StyleGuideBlobStorageContext>();
 
         TelemetryDebugWriter.IsTracingDisabled = Debugger.IsAttached;
 

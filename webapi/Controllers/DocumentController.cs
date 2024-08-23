@@ -51,7 +51,7 @@ public class DocumentController : ControllerBase
     private readonly DocumentTypeProvider _documentTypeProvider;
     private readonly IAuthInfo _authInfo;
     private readonly IContentSafetyService _contentSafetyService;
-    private readonly IBlobStorageContext _blobStorageContext;
+    private readonly IStyleGuideBlobStorageContext _blobStorageContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentImportController"/> class.
@@ -68,7 +68,7 @@ public class DocumentController : ControllerBase
         ChatParticipantRepository participantRepository,
         DocumentTypeProvider documentTypeProvider,
         IContentSafetyService contentSafetyService,
-        IBlobStorageContext blobStorageContext)
+        IStyleGuideBlobStorageContext blobStorageContext)
     {
         this._logger = logger;
         this._options = documentMemoryOptions.Value;

@@ -105,42 +105,44 @@ export const DocumentsTab: React.FC = () => {
     const styleGuideDocumentFileRef = useRef<HTMLInputElement | null>(null);
 
     const [isStyleGuideAvailable, setIsStyleGuideAvailable] = React.useState<boolean>(false);
-
+    const isStyleGuideAvailableRef = React.useRef(isStyleGuideAvailable);
     const { getAllPlugins } = usePlugins();
 
     React.useEffect(() => {
-        const onMenuLoaded = () => {
+        const onMenuLoaded = async () => {
             const styleGuidePluginName = process.env.REACT_APP_STYLE_GUIDE_PLUGIN_NAME ?? 'StyleGuideResultsPlugin';
 
-            void getAllPlugins().then((plugins) => {
-                plugins.forEach((plugin) => {
-                    if (plugin.name === styleGuidePluginName) {
-                        setIsStyleGuideAvailable(true);
-                        return;
-                    }
-                });
-            });
+            const plugins = await getAllPlugins();
+            for (const plugin of plugins) {
+                if (plugin.name === styleGuidePluginName) {
+                    setIsStyleGuideAvailable(true);
+                    isStyleGuideAvailableRef.current = true;
+                    return true;
+                }
+            }
+            return false;
         };
-        onMenuLoaded();
 
         if (!conversations[selectedId].disabled) {
-            const importingResources = importingDocuments
-                ? importingDocuments.map((document, index) => {
-                      return {
-                          id: `in-progress-${index}`,
-                          chatId: selectedId,
-                          sourceType: 'N/A',
-                          name: document,
-                          sharedBy: 'N/A',
-                          createdOn: 0,
-                          size: 0,
-                      } as ChatMemorySource;
-                  })
-                : [];
-            setResources(importingResources);
+            void onMenuLoaded().then(() => {
+                const importingResources = importingDocuments
+                    ? importingDocuments.map((document, index) => {
+                          return {
+                              id: `in-progress-${index}`,
+                              chatId: selectedId,
+                              sourceType: 'N/A',
+                              name: document,
+                              sharedBy: 'N/A',
+                              createdOn: 0,
+                              size: 0,
+                          } as ChatMemorySource;
+                      })
+                    : [];
+                setResources(importingResources);
 
-            void chat.getChatMemorySources(selectedId).then((sources) => {
-                setResources([...importingResources, ...sources]);
+                void chat.getChatMemorySources(selectedId, isStyleGuideAvailableRef.current).then((sources) => {
+                    setResources([...importingResources, ...sources]);
+                });
             });
         }
         // We don't want to have chat as one of the dependencies as it will cause infinite loop.
@@ -148,6 +150,11 @@ export const DocumentsTab: React.FC = () => {
     }, [importingDocuments, selectedId]);
 
     const { columns, rows } = useTable(resources);
+
+    const fileUploadededForStyleGuide = () => {
+        styleGuideDocumentFileRef.current?.click();
+    };
+
     return (
         <TabView
             title="Documents"
@@ -230,7 +237,7 @@ export const DocumentsTab: React.FC = () => {
                                     <MenuItem
                                         data-testid="addNewLocalDoc"
                                         icon={<GlobeSurfaceRegular />}
-                                        onClick={() => styleGuideDocumentFileRef.current?.click()}
+                                        onClick={fileUploadededForStyleGuide}
                                     >
                                         New document for style validation
                                     </MenuItem>

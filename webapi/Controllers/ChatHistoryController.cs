@@ -44,6 +44,7 @@ public class ChatHistoryController : ControllerBase
     private readonly ChatMemorySourceRepository _sourceRepository;
     private readonly PromptsOptions _promptOptions;
     private readonly IAuthInfo _authInfo;
+    private readonly IStyleGuideBlobStorageContext _styleGuideBlobStorageContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChatHistoryController"/> class.
@@ -64,7 +65,8 @@ public class ChatHistoryController : ControllerBase
         ChatParticipantRepository participantRepository,
         ChatMemorySourceRepository sourceRepository,
         IOptions<PromptsOptions> promptsOptions,
-        IAuthInfo authInfo)
+        IAuthInfo authInfo,
+        IStyleGuideBlobStorageContext styleGuideBlobStorageContext)
     {
         this._logger = logger;
         this._memoryClient = memoryClient;
@@ -74,6 +76,7 @@ public class ChatHistoryController : ControllerBase
         this._sourceRepository = sourceRepository;
         this._promptOptions = promptsOptions.Value;
         this._authInfo = authInfo;
+        this._styleGuideBlobStorageContext = styleGuideBlobStorageContext;
     }
 
     /// <summary>
@@ -235,13 +238,22 @@ public class ChatHistoryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(Policy = AuthPolicyName.RequireChatParticipant)]
-    public async Task<ActionResult<IEnumerable<MemorySource>>> GetSourcesAsync(Guid chatId)
+    public async Task<ActionResult<IEnumerable<MemorySource>>> GetSourcesAsync(Guid chatId, [FromQuery] bool isStyleGuideAvailable)
     {
         this._logger.LogInformation("Get imported sources of chat session {0}", chatId);
 
+        IEnumerable<MemorySource> sources = [];
+
+        if (isStyleGuideAvailable)
+        {
+            //If the style guide plugin is enabled, get the files that were uploaded for style guide
+            sources = await this._styleGuideBlobStorageContext.GetChatUploadedFiles().ConfigureAwait(false);
+        }
+
+
         if (await this._sessionRepository.TryFindByIdAsync(chatId.ToString()))
         {
-            IEnumerable<MemorySource> sources = await this._sourceRepository.FindByChatIdAsync(chatId.ToString());
+            sources = sources.Concat(await this._sourceRepository.FindByChatIdAsync(chatId.ToString()));
 
             return this.Ok(sources);
         }
