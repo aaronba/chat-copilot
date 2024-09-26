@@ -5,14 +5,16 @@ This is a plugin to chat against the style guide parser generated data.
 Table of Contents
 =================
 
-   * [Pre-requisites](#pre-requisites)
-   * [Data source Structure](#data-source-structure)
-   * [Functionality](#functionality)
-   * [Style Guide Plugin Folder  structure](#style-guide-plugin-folder--structure)
-   * [Configuration needed to enable the plugin](#configuration-needed-to-enable-the-plugin)
-   * [How to run](#how-to-run)
-      * [1. Add the plugin to the solution](#1-add-the-plugin-to-the-solution)
-      * [2. Run locally](#2-run-locally)
+- [Table of Contents](#table-of-contents)
+  - [Pre-requisites](#pre-requisites)
+  - [Data source Structure](#data-source-structure)
+  - [Functionality](#functionality)
+  - [Style Guide Plugin Folder  structure](#style-guide-plugin-folder--structure)
+  - [Configuration needed to enable the plugin](#configuration-needed-to-enable-the-plugin)
+    - [App Settings in the WebAPI](#app-settings-in-the-webapi)
+  - [How to run](#how-to-run)
+    - [1. Add the plugin to the solution](#1-add-the-plugin-to-the-solution)
+    - [2. Run locally](#2-run-locally)
 
 
 ## Pre-requisites
@@ -90,7 +92,7 @@ The Style guide folder is under "NativePlugins" folder. The structure is as belo
 
 
 ## Configuration needed to enable the plugin
-### App Settings
+### App Settings in the WebAPI
 
 1. Update the WebAPI `appsettings.json` file with a new section as shown below
     ```json
@@ -98,9 +100,12 @@ The Style guide folder is under "NativePlugins" folder. The structure is as belo
         "CosmosDB_Endpoint": "ENTER COSMOS DB ENDOINT",
         "CosmosDB_Key": "ENTER COSMOS DB KEY",
         "CosmosDB_Database": "ENTER COSMOS DB DATABASE NAME",
-        "CosmosDB_Container": "ENTER COSMOS DB CONTAINER NAME"
+        "CosmosDB_Container": "ENTER COSMOS DB CONTAINER NAME",
+        "StyleGuideStorage": "ENTER THE AZURE STORAGE NAME THAT HAS THE STYLE GUIDE CONTENT",
+        "Input_Container": "input"
     }
     ```
+
 
 2. In the WebAPI `appSettings.json` file, uncomment the line ` "NativePluginsDirectory": "./Plugins/NativePlugins"`
 
