@@ -1,9 +1,4 @@
-[EXTERNAL] AuthInfo.cs
-Barth, Aaron L. (Dell Federal Systems L.p.)<Aaron.Barth@va.gov>
-​
-Aaron Barth
-​
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
  
 
