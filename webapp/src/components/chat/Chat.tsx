@@ -3,7 +3,6 @@ import React from 'react';
 import { AuthHelper } from '../..//libs/auth/AuthHelper';
 import { AppState, useClasses } from '../../App';
 import { UserSettingsMenu } from '../header/UserSettingsMenu';
-import { PluginGallery } from '../open-api-plugins/PluginGallery';
 import { BackendProbe, ChatView, Error, Loading } from '../views';
 
 const Chat = ({
@@ -26,12 +25,15 @@ const Chat = ({
     }, [setAppState]);
     return (
         <div className={classes.container}>
+            <div className={classes.banner}>
+                <strong>UNCLASSIFIED</strong>
+            </div>
             <div className={classes.header}>
-                <Subtitle1 as="h1">Chat Copilot</Subtitle1>
+                <Subtitle1 as="h1">Gov Chat Copilot</Subtitle1>
                 {appState > AppState.SettingUserInfo && (
                     <div className={classes.cornerItems}>
                         <div className={classes.cornerItems}>
-                            <PluginGallery />
+                            {/* <PluginGallery /> */}
                             <UserSettingsMenu
                                 setLoadingState={() => {
                                     setAppState(AppState.SigningOut);

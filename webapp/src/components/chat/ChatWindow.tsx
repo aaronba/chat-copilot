@@ -149,16 +149,18 @@ export const ChatWindow: React.FC = () => {
                         <Tab data-testid="chatTab" id="chat" value="chat" aria-label="Chat Tab" title="Chat Tab">
                             Chat
                         </Tab>
-                        <Tab
-                            data-testid="documentsTab"
-                            id="documents"
-                            value="documents"
-                            aria-label="Documents Tab"
-                            title="Documents Tab"
-                        >
-                            Documents
-                        </Tab>
-                        {features[FeatureKeys.PluginsPlannersAndPersonas].enabled && (
+                        {features[FeatureKeys.Documents].enabled && (
+                            <Tab
+                                data-testid="documentsTab"
+                                id="documents"
+                                value="documents"
+                                aria-label="Documents Tab"
+                                title="Documents Tab"
+                            >
+                                Documents
+                            </Tab>
+                        )}
+                        {features[FeatureKeys.Planners].enabled && (
                             <>
                                 <Tab
                                     data-testid="plansTab"
@@ -170,6 +172,10 @@ export const ChatWindow: React.FC = () => {
                                 >
                                     Plans
                                 </Tab>
+                            </>
+                        )}
+                        {features[FeatureKeys.Personas].enabled && (
+                            <>
                                 <Tab
                                     data-testid="personaTab"
                                     id="persona"

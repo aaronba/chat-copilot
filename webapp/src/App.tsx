@@ -1,5 +1,5 @@
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useIsAuthenticated, useMsal } from '@azure/msal-react';
-import { FluentProvider, Subtitle1, makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { FluentProvider, makeStyles, shorthands, Subtitle1, tokens } from '@fluentui/react-components';
 
 import * as React from 'react';
 import { useCallback, useEffect } from 'react';
@@ -24,7 +24,7 @@ export const useClasses = makeStyles({
     },
     header: {
         alignItems: 'center',
-        backgroundColor: tokens.colorBrandForeground2,
+        backgroundColor: '#003F72',
         color: tokens.colorNeutralForegroundOnBrand,
         display: 'flex',
         '& h1': {
@@ -41,6 +41,13 @@ export const useClasses = makeStyles({
     cornerItems: {
         display: 'flex',
         ...shorthands.gap(tokens.spacingHorizontalS),
+    },
+    banner: {
+        backgroundColor: 'green',
+        color: 'white',
+        textAlign: 'center',
+        width: '100%',
+        padding: '8px 0',
     },
 });
 
@@ -133,8 +140,21 @@ const App = () => {
                 <>
                     <UnauthenticatedTemplate>
                         <div className={classes.container}>
-                            <div className={classes.header} aria-label="Application Header">
-                                <Subtitle1 as="h1">Chat Copilot</Subtitle1>
+                            <div className={classes.banner}>
+                                <strong>UNCLASSIFIED</strong>
+                            </div>
+                            <div
+                                style={{
+                                    color: 'white', //store.getState().app.frontendSettings?.headerTitleColor,
+                                    background: '#003F72', //store.getState().app.frontendSettings?.headerBackgroundColor,
+                                    fontSize: 24,
+                                    paddingBottom: 5,
+                                    display: 'table',
+                                }}
+                            >
+                                <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '57%' }}>
+                                    <Subtitle1 as="h1">Gov Chat Copilot</Subtitle1>
+                                </div>
                             </div>
                             {appState === AppState.SigningOut && <Loading text="Signing you out..." />}
                             {appState !== AppState.SigningOut && <Login />}

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 import { AuthConfig } from '../../../libs/auth/AuthHelper';
+import { FrontendConfig } from '../../../libs/frontend/FrontendHelper';
 import { AlertType } from '../../../libs/models/AlertType';
 import { IChatUser } from '../../../libs/models/ChatUser';
 import { ServiceInfo } from '../../../libs/models/ServiceInfo';
@@ -54,6 +55,7 @@ export interface AppState {
     alerts: Alert[];
     activeUserInfo?: ActiveUserInfo;
     authConfig?: AuthConfig | null;
+    frontendSettings?: FrontendConfig | null;
     tokenUsage: TokenUsage;
     features: Record<FeatureKeys, Feature>;
     settings: Setting[];
@@ -64,11 +66,15 @@ export interface AppState {
 export enum FeatureKeys {
     DarkMode,
     SimplifiedExperience,
-    PluginsPlannersAndPersonas,
+    Planners,
+    Personas,
+    Documents,
     AzureContentSafety,
     AzureAISearch,
     BotAsDocs,
     MultiUserChat,
+    ExportChatSessions,
+    LiveChatSessionSharing,
     RLHF, // Reinforcement Learning from Human Feedback
 }
 
@@ -81,10 +87,23 @@ export const Features = {
         enabled: true,
         label: 'Simplified Chat Experience',
     },
-    [FeatureKeys.PluginsPlannersAndPersonas]: {
-        enabled: true,
-        label: 'Plugins & Planners & Personas',
-        description: 'The Plans and Persona tabs are hidden until you turn this on',
+    [FeatureKeys.Planners]: {
+        enabled: false,
+        label: 'Planners',
+        description: 'The Plans tab is hidden until you turn this on',
+        inactive: false,
+    },
+    [FeatureKeys.Documents]: {
+        enabled: false,
+        label: 'Documents',
+        description: 'The DOcuments tab is hidden until you turn this on',
+        inactive: false,
+    },
+    [FeatureKeys.Personas]: {
+        enabled: false,
+        label: 'Personas',
+        description: 'The Persona tab is hidden until you turn this on',
+        inactive: false,
     },
     [FeatureKeys.AzureContentSafety]: {
         enabled: false,
@@ -105,8 +124,20 @@ export const Features = {
         label: 'Live Chat Session Sharing',
         description: 'Enable multi-user chat sessions. Not available when authorization is disabled.',
     },
-    [FeatureKeys.RLHF]: {
+    [FeatureKeys.ExportChatSessions]: {
         enabled: false,
+        label: 'Export Chat Sessions',
+        inactive: false,
+        description: 'Enable chat session export.',
+    },
+    [FeatureKeys.LiveChatSessionSharing]: {
+        enabled: false,
+        label: 'Live Chat Sesssion Sharing',
+        inactive: false,
+        description: 'Enable chat session sharing.',
+    },
+    [FeatureKeys.RLHF]: {
+        enabled: true,
         label: 'Reinforcement Learning from Human Feedback',
         description: 'Enable users to vote on model-generated responses. For demonstration purposes only.',
         // TODO: [Issue #42] Send and store feedback in backend
@@ -117,7 +148,7 @@ export const Settings = [
     {
         // Basic settings has to stay at the first index. Add all new settings to end of array.
         title: 'Basic',
-        features: [FeatureKeys.DarkMode, FeatureKeys.PluginsPlannersAndPersonas],
+        features: [FeatureKeys.DarkMode, FeatureKeys.Planners, FeatureKeys.Personas],
         stackVertically: true,
     },
     {

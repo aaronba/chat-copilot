@@ -74,6 +74,9 @@ export const appSlice = createSlice({
         setAuthConfig: (state: AppState, action: PayloadAction<AppState['authConfig']>) => {
             state.authConfig = action.payload;
         },
+        setFrontendConfig: (state: AppState, action: PayloadAction<AppState['frontendSettings']>) => {
+            state.frontendSettings = action.payload;
+        },
     },
 });
 
@@ -88,6 +91,7 @@ export const {
     setServiceInfo,
     setMaintenance,
     setAuthConfig,
+    setFrontendConfig,
 } = appSlice.actions;
 
 export default appSlice.reducer;
