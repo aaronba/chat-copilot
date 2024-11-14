@@ -4,13 +4,15 @@ Licensed under the MIT license. See LICENSE file in the project root for full li
 
 Bicep template for deploying CopilotChat Azure resources.
 */
-
 @description('Name for the deployment consisting of alphanumeric characters or dashes (\'-\')')
-param name string = 'copichat'
+param name string = 'copilotchat'
 
 @description('SKU for the Azure App Service plan')
-@allowed([ 'B1', 'S1', 'S2', 'S3', 'P1V3', 'P2V3', 'I1V2', 'I2V2' ])
-param webAppServiceSku string = 'B1'
+@allowed(['B1', 'S1', 'S2', 'S3', 'P1V3', 'P2V3', 'I1V2', 'I2V2'])
+param webAppServiceSku string = 'I1V2'
+param webAppIsolation string = 'IsolatedV2'
+param aseResourceGroup string = 'ASE-AOAI-rg'
+param aseName string = 'aoai-ase'
 
 @description('Location of package to deploy as the web service')
 #disable-next-line no-hardcoded-env-urls
@@ -39,6 +41,11 @@ param embeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure OpenAI endpoint to use (Azure OpenAI only)')
 param aiEndpoint string = ''
+
+@description('Azure OpenAI service resource group name')
+param AOAIResourceGroupName string
+@description('Azure OpenAI resource account name')
+param AOAIAccountName string
 
 @secure()
 @description('Azure OpenAI or OpenAI API key')
@@ -90,6 +97,20 @@ var uniqueName = '${name}-${rgIdHash}'
 @description('Name of the Azure Storage file share to create')
 var storageFileShareName = 'aciqdrantshare'
 
+//Let handle Gov cloud deployments too
+var isGov = environment().name == 'AzureUSGovernment'
+var searchServiceUrl = isGov
+  ? 'https://${azureAISearch.name}.search.azure.us'
+  : 'https://${azureAISearch.name}.search.windows.net'
+var searchSpeechUrl = isGov
+  ? 'https://${location}.api.cognitive.microsoft.us/sts/v1.0/issuetoken'
+  : 'https://${location}.api.cognitive.microsoft.com/sts/v1.0/issueToken'
+// Management URL
+var ArmUrl = environment().resourceManager
+var AOAISubscriptionId = subscription().subscriptionId
+// Role definition ID for Cognitive Services OpenAI User
+var openAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+
 resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' = if (deployNewAzureOpenAI) {
   name: 'ai-${uniqueName}'
   location: location
@@ -100,6 +121,12 @@ resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' = if (deployNe
   properties: {
     customSubDomainName: toLower(uniqueName)
   }
+}
+
+// Existing RG for AOAI
+resource aoaiResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+  scope: subscription()
+  name: AOAIResourceGroupName
 }
 
 resource openAI_completionModel 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = if (deployNewAzureOpenAI) {
@@ -130,7 +157,8 @@ resource openAI_embeddingModel 'Microsoft.CognitiveServices/accounts/deployments
       name: embeddingModel
     }
   }
-  dependsOn: [// This "dependency" is to create models sequentially because the resource
+  dependsOn: [
+    // This "dependency" is to create models sequentially because the resource
     openAI_completionModel // provider does not support parallel creation of models properly.
   ]
 }
@@ -141,15 +169,25 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   kind: 'app'
   sku: {
     name: webAppServiceSku
+    tier: webAppIsolation
+  }
+  properties: {
+    hostingEnvironmentProfile: {
+      id: resourceId(aseResourceGroup, 'Microsoft.Web/hostingEnvironments', aseName)
+    }
   }
 }
 
+@description('deploywebapp')
 resource appServiceWeb 'Microsoft.Web/sites@2022-09-01' = {
   name: 'app-${uniqueName}-webapi'
   location: location
   kind: 'app'
   tags: {
     skweb: '1'
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
   properties: {
     serverFarmId: appServicePlan.id
@@ -158,6 +196,20 @@ resource appServiceWeb 'Microsoft.Web/sites@2022-09-01' = {
     siteConfig: {
       healthCheckPath: '/healthz'
     }
+  }
+}
+
+resource roleAssignmentNew 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (deployNewAzureOpenAI) {
+  name: guid(appServiceWeb.id, 'openai-user-role-new')
+  scope: openAI
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      AOAISubscriptionId,
+      'Microsoft.Authorization/roleDefinitions',
+      openAiUserRoleId
+    )
+    principalId: appServiceWeb.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -182,7 +234,8 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
     use32BitWorkerProcess: false
     vnetRouteAllEnabled: true
     webSocketsEnabled: true
-    appSettings: concat([
+    appSettings: concat(
+      [
         {
           name: 'Authentication:Type'
           value: 'AzureAd'
@@ -228,6 +281,10 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
           value: 'chatparticipants'
         }
         {
+          name: 'ChatStore:Cosmos:UserPreferencesContainer'
+          value: 'chatpreferences'
+        }
+        {
           name: 'ChatStore:Cosmos:ConnectionString'
           value: deployCosmosDB ? cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString : ''
         }
@@ -238,6 +295,30 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         {
           name: 'AzureSpeech:Key'
           value: deploySpeechServices ? speechAccount.listKeys().key1 : ''
+        }
+        {
+          name: 'AzureSpeech:Endpoint'
+          value: deploySpeechServices ? '${searchSpeechUrl}' : ''
+        }
+        {
+          name: 'Service:ResourceGroupName'
+          value: AOAIResourceGroupName
+        }
+        {
+          name: 'Service:AccountName'
+          value: AOAIAccountName
+        }
+        {
+          name: 'Service:SubscriptionId'
+          value: AOAISubscriptionId
+        }
+        {
+          name: 'Service:GovernmentDeployment'
+          value: isGov ? 'true' : 'false'
+        }
+        {
+          name: 'Service:ARMurl'
+          value: ArmUrl
         }
         {
           name: 'AllowedOrigins'
@@ -321,7 +402,7 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         }
         {
           name: 'KernelMemory:Services:AzureBlobs:ConnectionString'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value}'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
         }
         {
           name: 'KernelMemory:Services:AzureBlobs:Container'
@@ -333,7 +414,7 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         }
         {
           name: 'KernelMemory:Services:AzureQueue:ConnectionString'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value}'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
         }
         {
           name: 'KernelMemory:Services:AzureAISearch:Auth'
@@ -341,7 +422,7 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         }
         {
           name: 'KernelMemory:Services:AzureAISearch:Endpoint'
-          value: memoryStore == 'AzureAISearch' ? 'https://${azureAISearch.name}.search.windows.net' : ''
+          value: memoryStore == 'AzureAISearch' ? '${searchServiceUrl}' : ''
         }
         {
           name: 'KernelMemory:Services:AzureAISearch:APIKey'
@@ -404,20 +485,22 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
           value: 'https://www.klarna.com'
         }
       ],
-      (deployWebSearcherPlugin) ? [
-        {
-          name: 'Plugins:1:Name'
-          value: 'WebSearcher'
-        }
-        {
-          name: 'Plugins:1:ManifestDomain'
-          value: 'https://${functionAppWebSearcherPlugin.properties.defaultHostName}'
-        }
-        {
-          name: 'Plugins:1:Key'
-          value: listkeys('${functionAppWebSearcherPlugin.id}/host/default/', '2022-09-01').functionKeys.default
-        }
-      ] : []
+      (deployWebSearcherPlugin)
+        ? [
+            {
+              name: 'Plugins:1:Name'
+              value: 'WebSearcher'
+            }
+            {
+              name: 'Plugins:1:ManifestDomain'
+              value: 'https://${functionAppWebSearcherPlugin.properties.defaultHostName}'
+            }
+            {
+              name: 'Plugins:1:Key'
+              value: listkeys('${functionAppWebSearcherPlugin.id}/host/default/', '2022-09-01').functionKeys.default
+            }
+          ]
+        : []
     )
   }
 }
@@ -442,7 +525,6 @@ resource appServiceMemoryPipeline 'Microsoft.Web/sites@2022-09-01' = {
     skweb: '1'
   }
   properties: {
-    httpsOnly: true
     serverFarmId: appServicePlan.id
     virtualNetworkSubnetId: memoryStore == 'Qdrant' ? virtualNetwork.properties.subnets[0].id : null
     siteConfig: {
@@ -475,7 +557,7 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
       }
       {
         name: 'KernelMemory:DataIngestion:ImageOcrType'
-        value: 'AzureFormRecognizer'
+        value: 'AzureAIDocIntel'
       }
       {
         name: 'KernelMemory:DataIngestion:OrchestrationType'
@@ -507,7 +589,7 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
       }
       {
         name: 'KernelMemory:Services:AzureBlobs:ConnectionString'
-        value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value}'
+        value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
       }
       {
         name: 'KernelMemory:Services:AzureBlobs:Container'
@@ -519,7 +601,7 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
       }
       {
         name: 'KernelMemory:Services:AzureQueue:ConnectionString'
-        value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value}'
+        value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
       }
       {
         name: 'KernelMemory:Services:AzureAISearch:Auth'
@@ -527,7 +609,7 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
       }
       {
         name: 'KernelMemory:Services:AzureAISearch:Endpoint'
-        value: memoryStore == 'AzureAISearch' ? 'https://${azureAISearch.name}.search.windows.net' : ''
+        value: memoryStore == 'AzureAISearch' ? '${searchServiceUrl}' : ''
       }
       {
         name: 'KernelMemory:Services:AzureAISearch:APIKey'
@@ -570,15 +652,15 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
         value: embeddingModel
       }
       {
-        name: 'KernelMemory:Services:AzureFormRecognizer:Auth'
+        name: 'KernelMemory:Services:AzureAIDocIntel:Auth'
         value: 'ApiKey'
       }
       {
-        name: 'KernelMemory:Services:AzureFormRecognizer:Endpoint'
+        name: 'KernelMemory:Services:AzureAIDocIntel:Endpoint'
         value: ocrAccount.properties.endpoint
       }
       {
-        name: 'KernelMemory:Services:AzureFormRecognizer:APIKey'
+        name: 'KernelMemory:Services:AzureAIDocIntel:APIKey'
         value: ocrAccount.listKeys().key1
       }
       {
@@ -699,19 +781,19 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource appInsightExtensionWeb 'Microsoft.Web/sites/siteextensions@2022-09-01' = {
   parent: appServiceWeb
   name: 'Microsoft.ApplicationInsights.AzureWebSites'
-  dependsOn: [ appServiceWebDeploy ]
+  dependsOn: [appServiceWebDeploy]
 }
 
 resource appInsightExtensionMemory 'Microsoft.Web/sites/siteextensions@2022-09-01' = {
   parent: appServiceMemoryPipeline
   name: 'Microsoft.ApplicationInsights.AzureWebSites'
-  dependsOn: [ appServiceMemoryPipelineDeploy ]
+  dependsOn: [appServiceMemoryPipelineDeploy]
 }
 
 resource appInsightExtensionWebSearchPlugin 'Microsoft.Web/sites/siteextensions@2022-09-01' = if (deployWebSearcherPlugin) {
   parent: functionAppWebSearcherPlugin
   name: 'Microsoft.ApplicationInsights.AzureWebSites'
-  dependsOn: [ functionAppWebSearcherDeploy ]
+  dependsOn: [functionAppWebSearcherDeploy]
 }
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -757,7 +839,7 @@ resource appServicePlanQdrant 'Microsoft.Web/serverfarms@2022-03-01' = if (memor
   location: location
   kind: 'linux'
   sku: {
-    name: 'P1v3'
+    name: 'I1V2'
   }
   properties: {
     reserved: true
@@ -949,7 +1031,8 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = if (
   kind: 'GlobalDocumentDB'
   properties: {
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
-    locations: [ {
+    locations: [
+      {
         locationName: location
         failoverPriority: 0
         isZoneRedundant: false
@@ -1062,6 +1145,37 @@ resource participantContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   }
 }
 
+resource preferenceContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = if (deployCosmosDB) {
+  parent: cosmosDatabase
+  name: 'chatpreferences'
+  properties: {
+    resource: {
+      id: 'chatpreferences'
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+        excludedPaths: [
+          {
+            path: '/"_etag"/?'
+          }
+        ]
+      }
+      partitionKey: {
+        paths: [
+          '/userId'
+        ]
+        kind: 'Hash'
+        version: 2
+      }
+    }
+  }
+}
+
 resource memorySourcesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = if (deployCosmosDB) {
   parent: cosmosDatabase
   name: 'chatmemorysources'
@@ -1143,7 +1257,8 @@ resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = if (deployWebS
 output webapiUrl string = appServiceWeb.properties.defaultHostName
 output webapiName string = appServiceWeb.name
 output memoryPipelineName string = appServiceMemoryPipeline.name
-output pluginNames array = concat(
-  [],
-  (deployWebSearcherPlugin) ? [ functionAppWebSearcherPlugin.name ] : []
-)
+output pluginNames array = concat([], (deployWebSearcherPlugin) ? [functionAppWebSearcherPlugin.name] : [])
+
+//output aseId string = appServicePlan.id
+//output aseNameOutput string = aseID
+//output aseLocation string = appServicePlan.location
