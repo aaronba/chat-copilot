@@ -18,4 +18,9 @@ public sealed class AzureSpeechOptions
     /// Key to access the Azure speech service.
     /// </summary>
     public string? Key { get; set; } = string.Empty;
+    /// <summary>
+    /// Endpoint of the Azure speech service to use in case of Gov Clouds
+    /// </summary>
+    public string? Endpoint { get; set; } = string.Empty;
+
 }

@@ -5,6 +5,12 @@ Deploy CopilotChat's MemoryPipeline to Azure
 
 param(
     [Parameter(Mandatory)]
+    [ValidateSet("AzureCloud", "AzureUSGovernment")]
+    [string]
+    # Azure cloud environment name
+    $Environment = "AzureCloud",
+
+    [Parameter(Mandatory)]
     [string]
     # Subscription to which to make the deployment
     $Subscription,
@@ -30,6 +36,12 @@ if (!(Test-Path $PackageFilePath)) {
     exit 1
 }
 
+Write-Host "Setting Azure cloud environment to $Environment..."
+az cloud set --name $Environment
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 az account show --output none
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Log into your Azure account"
@@ -38,11 +50,11 @@ if ($LASTEXITCODE -ne 0) {
 
 az account set -s $Subscription
 if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
+    exit $LASTEXITCODE
 }
 
 Write-Host "Getting Azure WebApp resource name..."
-$memoryPipelineName=$(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json).properties.outputs.memoryPipelineName.value
+$memoryPipelineName = $(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json).properties.outputs.memoryPipelineName.value
 if ($null -eq $memoryPipelineName) {
     Write-Error "Could not get Azure WebApp resource name from deployment output."
     exit 1

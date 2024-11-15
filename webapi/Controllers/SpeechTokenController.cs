@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using CopilotChat.WebApi.Models.Response;
 using CopilotChat.WebApi.Options;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CopilotChat.WebApi.Controllers;
@@ -44,8 +48,8 @@ public class SpeechTokenController : ControllerBase
         {
             return new SpeechTokenResponse { IsSuccess = false };
         }
-
-        string fetchTokenUri = "https://" + this._options.Region + ".api.cognitive.microsoft.com/sts/v1.0/issueToken";
+        //Updated to not use hardcoded string to allow GOv cloud and such to work
+        string fetchTokenUri = this._options.Endpoint;
 
         TokenResult tokenResult = await this.FetchTokenAsync(fetchTokenUri, this._options.Key);
         var isSuccess = tokenResult.ResponseCode != HttpStatusCode.NotFound;

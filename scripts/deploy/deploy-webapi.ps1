@@ -5,6 +5,12 @@ Deploy Chat Copilot application to Azure
 
 param(
     [Parameter(Mandatory)]
+    [ValidateSet("AzureCloud", "AzureUSGovernment")]
+    [string]
+    # Azure cloud environment name
+    $Environment = "AzureCloud",
+
+    [Parameter(Mandatory)]
     [string]
     # Subscription to which to make the deployment
     $Subscription,
@@ -41,6 +47,19 @@ if (!(Test-Path $PackageFilePath)) {
     exit 1
 }
 
+if ($Environment -eq "AzureUSGovernment") {
+    $suffix = "us"
+}
+else {
+    $suffix = "com"
+}
+
+Write-Host "Setting Azure cloud environment to $Environment..."
+az cloud set --name $Environment
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 az account show --output none
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Log into your Azure account"
@@ -53,7 +72,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Getting Azure WebApp resource name..."
-$deployment=$(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json)
+$deployment = $(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json)
 $webApiUrl = $deployment.properties.outputs.webapiUrl.value
 $webApiName = $deployment.properties.outputs.webapiName.value
 $pluginNames = $deployment.properties.outputs.pluginNames.value
@@ -111,7 +130,7 @@ if (-Not $SkipAppRegistration) {
     $webapiSettings = $(az webapp config appsettings list --name $webapiName --resource-group $ResourceGroupName | ConvertFrom-JSON)
     $frontendClientId = ($webapiSettings | Where-Object -Property name -EQ -Value Frontend:AadClientId).value
     $objectId = (az ad app show --id $frontendClientId | ConvertFrom-Json).id
-    $redirectUris = (az rest --method GET --uri "https://graph.microsoft.com/v1.0/applications/$objectId" --headers 'Content-Type=application/json' | ConvertFrom-Json).spa.redirectUris
+    $redirectUris = (az rest --method GET --uri "https://graph.microsoft.$suffix/v1.0/applications/$objectId" --headers 'Content-Type=application/json' | ConvertFrom-Json).spa.redirectUris
     $needToUpdateRegistration = $false
 
     foreach ($address in $origins) {
@@ -133,7 +152,7 @@ if (-Not $SkipAppRegistration) {
 
         az rest `
             --method PATCH `
-            --uri "https://graph.microsoft.com/v1.0/applications/$objectId" `
+            --uri "https://graph.microsoft.$suffix/v1.0/applications/$objectId" `
             --headers 'Content-Type=application/json' `
             --body $body
         if ($LASTEXITCODE -ne 0) {

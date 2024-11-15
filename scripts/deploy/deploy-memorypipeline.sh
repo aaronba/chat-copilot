@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+﻿﻿#!/bin/bash
 
 # Deploy CopilotChat's MemoryPipeline to Azure.
 
@@ -38,6 +38,15 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
+        -e | --environment)
+        ENVIRONMENT="$2"
+        if [[ "$ENVIRONMENT" != "AzureCloud" && "$ENVIRONMENT" != "AzureUSGovernment" ]]; then
+            echo "Invalid environment option. Use 'AzureCloud' or 'AzureUSGovernment'."
+            exit 1
+        fi
+        shift
+        shift
+        ;;
         *)
         echo "Unknown option $1"
         usage
@@ -60,6 +69,24 @@ if [[ ! -f "$PACKAGE_FILE_PATH" ]]; then
     echo "Package file '$PACKAGE_FILE_PATH' does not exist. Have you run 'package-memorypipeline.sh' yet?"
     exit 1
 fi
+
+
+# Ensure that the environment variable is set
+if [[ -z "$ENVIRONMENT" ]]; then
+    echo "Error: Environment not set. Please set the environment to either 'AzureCloud' or 'AzureUSGovernment'."
+    exit 1
+fi
+
+echo "Setting Azure cloud environment to $ENVIRONMENT..."
+az cloud set --name "$ENVIRONMENT"
+
+# Check if the last command was successful
+if [[ $? -ne 0 ]]; then
+    echo "Error: Failed to set Azure cloud environment to $ENVIRONMENT."
+    exit $?
+fi
+
+echo "Azure cloud environment successfully set to $ENVIRONMENT."
 
 az account show --output none
 if [ $? -ne 0 ]; then

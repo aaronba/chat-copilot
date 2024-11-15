@@ -29,6 +29,16 @@ param(
     # Azure AD tenant ID for authenticating users
     $TenantId,
 
+    [string]
+    # Azure App Service Environment name
+    $AseName,
+
+    [Parameter(Mandatory)]
+    [ValidateSet("AzureCloud", "AzureUSGovernment")]
+    [string]
+    # Target Azure environment for deployment
+    $Environment = "AzureCloud",
+
     [ValidateSet("AzureOpenAI", "OpenAI")]
     [string]
     # AI service to use
@@ -43,12 +53,20 @@ param(
     $AIEndpoint,
 
     [string]
+    # Model to use for chat completions
+    $CompletionModel = "gpt-4o",
+
+    [string]
+    # Model to use for text embeddings
+    $EmbeddingModel = "text-embedding-ada-002",
+
+    [string]
     # Resource group to which to make the deployment
     $ResourceGroup,
 
     [string]
     # Region to which to make the deployment
-    $Region = "southcentralus",
+    $Region = "",
 
     [string]
     # SKU for the Azure App Service plan
@@ -56,7 +74,7 @@ param(
 
     [string]
     # Azure AD cloud instance for authenticating users
-    $AzureAdInstance = "https://login.microsoftonline.com",
+    $AzureAdInstance = "",
 
     [ValidateSet("AzureAISearch", "Qdrant")]
     [string]
@@ -83,6 +101,18 @@ param(
     # Skip deployment of binary packages
     $NoDeployPackage
 )
+
+# Set defaults based on the target environment
+switch ($Environment) {
+    "AzureUSGovernment" {
+        if (-not $Region) { $Region = "usgovvirginia" }
+        if (-not $AzureAdInstance) { $AzureAdInstance = "https://login.microsoftonline.us" }
+    }
+    Default {
+        if (-not $Region) { $Region = "southcentralus" }
+        if (-not $AzureAdInstance) { $AzureAdInstance = "https://login.microsoftonline.com" }
+    }
+}
 
 # if AIService is AzureOpenAI
 if ($AIService -eq "AzureOpenAI") {
@@ -112,12 +142,15 @@ $jsonConfig = "
 {
     `\`"webAppServiceSku`\`": { `\`"value`\`": `\`"$WebAppServiceSku`\`" },
     `\`"aiService`\`": { `\`"value`\`": `\`"$AIService`\`" },
+    `\`"completionModel`\`": { `\`"value`\`": `\`"$CompletionModel`\`" },
+    `\`"embeddingModel`\`": { `\`"value`\`": `\`"$EmbeddingModel`\`" },
     `\`"aiApiKey`\`": { `\`"value`\`": `\`"$AIApiKey`\`" },
     `\`"aiEndpoint`\`": { `\`"value`\`": `\`"$AIEndpoint`\`" },
     `\`"deployPackages`\`": { `\`"value`\`": $(If ($NoDeployPackage) {"false"} Else {"true"}) },
     `\`"azureAdInstance`\`": { `\`"value`\`": `\`"$AzureAdInstance`\`" },
     `\`"azureAdTenantId`\`": { `\`"value`\`": `\`"$TenantId`\`" },
     `\`"webApiClientId`\`": { `\`"value`\`": `\`"$BackendClientId`\`"},
+    `\`"aseName`\`": { `\`"value`\`": `\`"$AseName`\`"},
     `\`"frontendClientId`\`": { `\`"value`\`": `\`"$FrontendClientId`\`"},
     `\`"deployNewAzureOpenAI`\`": { `\`"value`\`": $(If ($DeployAzureOpenAI) {"true"} Else {"false"}) },
     `\`"memoryStore`\`": { `\`"value`\`": `\`"$MemoryStore`\`" },
@@ -135,6 +168,12 @@ $templateFile = "$($PSScriptRoot)/main.bicep"
 
 if (!$ResourceGroup) {
     $ResourceGroup = "rg-" + $DeploymentName
+}
+
+Write-Host "Setting Azure cloud environment to $Environment..."
+az cloud set --name $Environment
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
 }
 
 az account show --output none

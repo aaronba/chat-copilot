@@ -7,12 +7,14 @@ Bicep template for deploying CopilotChat Azure resources.
 @description('Name for the deployment consisting of alphanumeric characters or dashes (\'-\')')
 param name string = 'copilotchat'
 
+
+param aseResourceGroup string
+param aseName string? 
 @description('SKU for the Azure App Service plan')
 @allowed(['B1', 'S1', 'S2', 'S3', 'P1V3', 'P2V3', 'I1V2', 'I2V2'])
-param webAppServiceSku string = 'I1V2'
+param webAppServiceSku string = empty(aseName) ? 'B1' : 'I1V2'
 param webAppIsolation string = 'IsolatedV2'
-param aseResourceGroup string = 'ASE-AOAI-rg'
-param aseName string = 'aoai-ase'
+
 
 @description('Location of package to deploy as the web service')
 #disable-next-line no-hardcoded-env-urls
@@ -41,11 +43,6 @@ param embeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure OpenAI endpoint to use (Azure OpenAI only)')
 param aiEndpoint string = ''
-
-@description('Azure OpenAI service resource group name')
-param AOAIResourceGroupName string
-@description('Azure OpenAI resource account name')
-param AOAIAccountName string
 
 @secure()
 @description('Azure OpenAI or OpenAI API key')
@@ -105,11 +102,6 @@ var searchServiceUrl = isGov
 var searchSpeechUrl = isGov
   ? 'https://${location}.api.cognitive.microsoft.us/sts/v1.0/issuetoken'
   : 'https://${location}.api.cognitive.microsoft.com/sts/v1.0/issueToken'
-// Management URL
-var ArmUrl = environment().resourceManager
-var AOAISubscriptionId = subscription().subscriptionId
-// Role definition ID for Cognitive Services OpenAI User
-var openAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 
 resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' = if (deployNewAzureOpenAI) {
   name: 'ai-${uniqueName}'
@@ -121,12 +113,6 @@ resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' = if (deployNe
   properties: {
     customSubDomainName: toLower(uniqueName)
   }
-}
-
-// Existing RG for AOAI
-resource aoaiResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
-  scope: subscription()
-  name: AOAIResourceGroupName
 }
 
 resource openAI_completionModel 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = if (deployNewAzureOpenAI) {
@@ -162,7 +148,7 @@ resource openAI_embeddingModel 'Microsoft.CognitiveServices/accounts/deployments
     openAI_completionModel // provider does not support parallel creation of models properly.
   ]
 }
-
+/*
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: 'asp-${uniqueName}-webapi'
   location: location
@@ -176,6 +162,24 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
       id: resourceId(aseResourceGroup, 'Microsoft.Web/hostingEnvironments', aseName)
     }
   }
+}*/
+
+
+var isAseProvided = !empty(aseName) && !contains(aseName, 'null')
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+  name: 'asp-${uniqueName}-webapi'
+  location: location
+  kind: 'app'
+  sku: {
+    name: webAppServiceSku
+    tier: isAseProvided ? webAppIsolation  : null
+  }
+  properties: isAseProvided ? {
+    hostingEnvironmentProfile: {
+      id: resourceId(aseResourceGroup, 'Microsoft.Web/hostingEnvironments', aseName)
+    }
+  } : {}
 }
 
 @description('deploywebapp')
@@ -196,20 +200,6 @@ resource appServiceWeb 'Microsoft.Web/sites@2022-09-01' = {
     siteConfig: {
       healthCheckPath: '/healthz'
     }
-  }
-}
-
-resource roleAssignmentNew 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (deployNewAzureOpenAI) {
-  name: guid(appServiceWeb.id, 'openai-user-role-new')
-  scope: openAI
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      AOAISubscriptionId,
-      'Microsoft.Authorization/roleDefinitions',
-      openAiUserRoleId
-    )
-    principalId: appServiceWeb.identity.principalId
-    principalType: 'ServicePrincipal'
   }
 }
 
@@ -301,24 +291,8 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
           value: deploySpeechServices ? '${searchSpeechUrl}' : ''
         }
         {
-          name: 'Service:ResourceGroupName'
-          value: AOAIResourceGroupName
-        }
-        {
-          name: 'Service:AccountName'
-          value: AOAIAccountName
-        }
-        {
-          name: 'Service:SubscriptionId'
-          value: AOAISubscriptionId
-        }
-        {
           name: 'Service:GovernmentDeployment'
           value: isGov ? 'true' : 'false'
-        }
-        {
-          name: 'Service:ARMurl'
-          value: ArmUrl
         }
         {
           name: 'AllowedOrigins'
@@ -331,6 +305,62 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         {
           name: 'Frontend:AadClientId'
           value: frontendClientId
+        }
+        {
+          name: 'Frontend:HeaderTitle'
+          value: 'NSERC Chat'
+        }
+        {
+          name: 'Frontend:HeaderTitleColor'
+          value: 'White'
+        }
+        {
+          name: 'Frontend:HeaderBackgroundColor'
+          value: 'Blue'
+        }
+        {
+          name: 'Frontend:HeaderIcon'
+          value: ''
+        }
+        {
+          name: 'Frontend:HeaderSettingsEnabled'
+          value: true
+        }
+        {
+          name: 'Frontend:HeaderPluginsEnabled'
+          value: false
+        }
+        {
+          name: 'Frontend:DocumentLocalUploadEnabled'
+          value: true
+        }
+        {
+          name: 'Frontend:DocumentGlobalUploadEnabled'
+          value: false
+        }
+        {
+          name: 'Frontend:CreateNewChat'
+          value: true
+        }
+        {
+          name: 'Frontend:DisclaimerMsg'
+          value: ''
+        }
+        {
+          name: 'DocumentMemory:DocumentLineSplitMaxTokens'
+          value: 72
+        }
+        {
+          name: 'DocumentMemory:DocumentChunkMaxTokens'
+          value: 512
+        }
+        {
+          name: 'DocumentMemory:FileSizeLimit'
+          value: 10485760
+        }
+        {
+          name: 'DocumentMemory:FileCountLimit'
+          value: 10
         }
         {
           name: 'Logging:LogLevel:Default'
@@ -378,7 +408,7 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
         }
         {
           name: 'KernelMemory:DataIngestion:DistributedOrchestration:QueueType'
-          value: 'AzureQueue'
+          value: 'AzureQueues'
         }
         {
           name: 'KernelMemory:DataIngestion:EmbeddingGeneratorTypes:0'
@@ -409,11 +439,11 @@ resource appServiceWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
           value: 'chatmemory'
         }
         {
-          name: 'KernelMemory:Services:AzureQueue:Auth'
+          name: 'KernelMemory:Services:AzureQueues:Auth'
           value: 'ConnectionString'
         }
         {
-          name: 'KernelMemory:Services:AzureQueue:ConnectionString'
+          name: 'KernelMemory:Services:AzureQueues:ConnectionString'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
         }
         {
@@ -565,7 +595,7 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
       }
       {
         name: 'KernelMemory:DataIngestion:DistributedOrchestration:QueueType'
-        value: 'AzureQueue'
+        value: 'AzureQueues'
       }
       {
         name: 'KernelMemory:DataIngestion:EmbeddingGeneratorTypes:0'
@@ -596,11 +626,11 @@ resource appServiceMemoryPipelineConfig 'Microsoft.Web/sites/config@2022-09-01' 
         value: 'chatmemory'
       }
       {
-        name: 'KernelMemory:Services:AzureQueue:Auth'
+        name: 'KernelMemory:Services:AzureQueues:Auth'
         value: 'ConnectionString'
       }
       {
-        name: 'KernelMemory:Services:AzureQueue:ConnectionString'
+        name: 'KernelMemory:Services:AzureQueues:ConnectionString'
         value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[1].value};EndpointSuffix=${environment().suffixes.storage}'
       }
       {

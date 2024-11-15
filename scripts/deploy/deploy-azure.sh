@@ -30,8 +30,8 @@ usage() {
     echo "  -ws, --deploy-web-searcher-plugin          Deploy the web searcher plugin"
     echo "  -dd, --debug-deployment                    Switches on verbose template deployment output"
     echo "  -ndp, --no-deploy-package                  Skips deploying binary packages to cloud when set."
-    echo "  -aoaigr, --aoai-resource-group-name        Azure OpenAI service resource group name"
-    echo "  -aoaian, --aoai-account-name               Azure OpenAI resource account name"
+    echo "  -ase, --ase-name                           Name of the Existing App Service Environment"
+
 }
 
 # Parse arguments
@@ -132,22 +132,17 @@ while [[ $# -gt 0 ]]; do
         NO_DEPLOY_PACKAGE=true
         shift
         ;;
-    -aoaigr | --aoai-resource-group-name)
-        AOAI_RESOURCE_GROUP_NAME="$2"
-        shift
-        shift
-        ;;
-    -aoaian | --aoai-account-name)
-        AOAI_ACCOUNT_NAME="$2"
-        shift
-        shift
-        ;;
     -e | --environment)
         ENVIRONMENT="$2"        
         if [[ "$ENVIRONMENT" != "AzureCloud" && "$ENVIRONMENT" != "AzureUSGovernment" ]]; then
             echo "Invalid environment option. Use 'AzureCloud' or 'AzureUSGovernment'."
             exit 1
         fi
+        shift
+        shift
+        ;;
+    -ase | --ase-name)
+        ASE_NAME="$2"        
         shift
         shift
         ;;
@@ -158,7 +153,6 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
-
 # Check mandatory arguments
 if [[ -z "$DEPLOYMENT_NAME" ]] || [[ -z "$SUBSCRIPTION" ]] || [[ -z "$BACKEND_CLIENT_ID" ]] || [[ -z "$FRONTEND_CLIENT_ID" ]] || [[ -z "$AZURE_AD_TENANT_ID" ]] || [[ -z "$AI_SERVICE_TYPE" ]] || [[ -z "$COMPLETION_MODEL" ]] || [[ -z "$EMBEDDING_MODEL" ]]; then
     usage
@@ -230,7 +224,7 @@ fi
 az account set -s "$SUBSCRIPTION"
 
 # Set defaults
-: "${REGION:="southcentralus"}"
+: "${REGION:="eastus"}"
 : "${WEB_APP_SVC_SKU:="I2V2"}"
 : "${AZURE_AD_INSTANCE:="https://login.microsoftonline.com"}"
 : "${MEMORY_STORE:="AzureAISearch"}"
@@ -243,9 +237,6 @@ if [[ "$ENVIRONMENT" == "AzureUSGovernment" ]]; then
     echo "updating values for Government Cloud"
     REGION="usgovvirginia"  # Direct assignment
     AZURE_AD_INSTANCE="https://login.microsoftonline.us"  # Direct assignment
-else
-    echo "Unknown environment: $ENVIRONMENT"
-    exit 1
 fi
 
 # Log the values of REGION and AZURE_AD_INSTANCE
@@ -266,8 +257,8 @@ JSON_CONFIG=$(
     "azureAdTenantId": { "value": "$AZURE_AD_TENANT_ID" },
     "webApiClientId": { "value": "$BACKEND_CLIENT_ID" },
     "frontendClientId": { "value": "$FRONTEND_CLIENT_ID" },
-    "AOAIResourceGroupName": { "value": "$AOAI_RESOURCE_GROUP_NAME" },
-    "AOAIAccountName": { "value": "$AOAI_ACCOUNT_NAME" },
+    "aseResourceGroup": { "value": "$RESOURCE_GROUP" },
+    "aseName": { "value": "$ASE_NAME" },
     "deployNewAzureOpenAI": { "value": $([ "$NO_NEW_AZURE_OPENAI" = true ] && echo "false" || echo "true") },
     "memoryStore": { "value": "$MEMORY_STORE" },
     "deployCosmosDB": { "value": $([ "$NO_COSMOS_DB" = true ] && echo "false" || echo "true") },
@@ -276,6 +267,9 @@ JSON_CONFIG=$(
 }
 EOF
 )
+
+echo "ASE_NAME set to: ${ASE_NAME}"
+
 
 echo "Ensuring resource group $RESOURCE_GROUP exists..."
 az group create --location "$REGION" --name "$RESOURCE_GROUP" --tags Creator="$USER"
