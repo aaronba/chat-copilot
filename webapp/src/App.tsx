@@ -10,9 +10,16 @@ import { useChat, useFile } from './libs/hooks';
 import { AlertType } from './libs/models/AlertType';
 import { useAppDispatch, useAppSelector } from './redux/app/hooks';
 import { RootState } from './redux/app/store';
-import { FeatureKeys } from './redux/features/app/AppState';
+import { FeatureKeys, Features } from './redux/features/app/AppState';
 import { addAlert, setActiveUserInfo, setServiceInfo } from './redux/features/app/appSlice';
 import { semanticKernelDarkTheme, semanticKernelLightTheme } from './styles';
+
+const headerTitleColor =
+    Features[FeatureKeys.HeaderTitleColor].text != '' ? Features[FeatureKeys.HeaderTitleColor].text : 'white';
+const headerBackgroundColor =
+    Features[FeatureKeys.HeaderBackgroundColor].text !== ''
+        ? Features[FeatureKeys.HeaderBackgroundColor].text
+        : '#003F72';
 
 export const useClasses = makeStyles({
     container: {
@@ -24,7 +31,7 @@ export const useClasses = makeStyles({
     },
     header: {
         alignItems: 'center',
-        backgroundColor: '#003F72',
+        backgroundColor: headerBackgroundColor,
         color: tokens.colorNeutralForegroundOnBrand,
         display: 'flex',
         '& h1': {
@@ -44,7 +51,7 @@ export const useClasses = makeStyles({
     },
     banner: {
         backgroundColor: 'green',
-        color: 'white',
+        color: headerTitleColor,
         textAlign: 'center',
         width: '100%',
         padding: '8px 0',
@@ -133,6 +140,16 @@ const App = () => {
     }, [instance, isAuthenticated, appState, isMaintenance]);
 
     const theme = features[FeatureKeys.DarkMode].enabled ? semanticKernelDarkTheme : semanticKernelLightTheme;
+    const chatTitle =
+        features[FeatureKeys.HeaderTitle].text !== '' ? features[FeatureKeys.HeaderTitle].text : 'Chat Copilot';
+    const headerTitleColor =
+        features[FeatureKeys.HeaderTitleColor].text != '' ? features[FeatureKeys.HeaderTitleColor].text : 'white';
+    const headerBackgroundColor =
+        features[FeatureKeys.HeaderBackgroundColor].text !== ''
+            ? features[FeatureKeys.HeaderBackgroundColor].text
+            : '#003F72';
+    const disclaimerText =
+        features[FeatureKeys.DisclaimerText].text !== '' ? features[FeatureKeys.DisclaimerText].text : 'Unclassified';
 
     return (
         <FluentProvider className="app-container" theme={theme}>
@@ -141,19 +158,19 @@ const App = () => {
                     <UnauthenticatedTemplate>
                         <div className={classes.container}>
                             <div className={classes.banner}>
-                                <strong>UNCLASSIFIED</strong>
+                                <strong>{disclaimerText}</strong>
                             </div>
                             <div
                                 style={{
-                                    color: 'white', //store.getState().app.frontendSettings?.headerTitleColor,
-                                    background: '#003F72', //store.getState().app.frontendSettings?.headerBackgroundColor,
+                                    color: headerTitleColor, //store.getState().app.frontendSettings?.headerTitleColor,
+                                    background: headerBackgroundColor, //store.getState().app.frontendSettings?.headerBackgroundColor,
                                     fontSize: 24,
                                     paddingBottom: 5,
                                     display: 'table',
                                 }}
                             >
                                 <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '57%' }}>
-                                    <Subtitle1 as="h1">Gov Chat Copilot</Subtitle1>
+                                    <Subtitle1 as="h1">{chatTitle}</Subtitle1>
                                 </div>
                             </div>
                             {appState === AppState.SigningOut && <Loading text="Signing you out..." />}

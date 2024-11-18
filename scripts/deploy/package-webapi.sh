@@ -19,6 +19,15 @@ usage() {
     echo "  -i  --info INFO                        Additional info to put in version details"
     echo "  -nz, --no-zip                          Do not zip package (default: false)"
     echo "  -s, --skip-frontend                    Do not build frontend files"
+    echo "  -ht, --header-title HEADER_TITLE       Header title (default: NSERC Copilot)"
+    echo "  -htc, --header-title-color HEADER_TITLE_COLOR Header title color (default: #000000)"
+    echo "  -hbc, --header-background-color HEADER_BACKGROUND_COLOR Header background color (default: #FFFFFF)"
+    echo "  -l, --logo LOGO                        Header logo (default: none)"
+    echo "  -dm, --disclaimer-message DISCLAIMER_MESSAGE Disclaimer message (default: none)"
+    echo "  -se, --settings-enabled                Enable settings (default: false)"
+    echo "  -dlu, --document-local-upload          Enable local document upload (default: false)"
+    echo "  -dgu, --document-global-upload         Enable global document upload (default: false)"
+
 }
 
 # Parse arguments
@@ -55,6 +64,11 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
+    -ht | --header-title)
+        HEADER_TITLE="$2"
+        shift
+        shift
+        ;;
     -nz | --no-zip)
         NO_ZIP=true
         shift
@@ -68,6 +82,38 @@ while [[ $# -gt 0 ]]; do
         usage
         exit 1
         ;;
+    -htc | --header-title-color)
+        HEADER_TITLE_COLOR="$2"
+        shift
+        shift
+        ;;
+    -hbc | --header-background-color)
+        HEADER_BACKGROUND_COLOR="$2"
+        shift
+        shift
+        ;;
+    -l | --logo)
+        LOGO="$2"
+        shift
+        shift
+        ;;
+    -dm | --disclaimer-message)
+        DISCLAIMER_MESSAGE="$2"
+        shift
+        shift
+        ;;
+    -se | --settings-enabled)
+        SETTINGS_ENABLED=true
+        shift
+        ;;
+    -dlu | --document-local-upload)
+        DOCUMENT_LOCAL_UPLOAD=true
+        shift
+        ;;
+    -dgu | --document-global-upload)
+        DOCUMENT_GLOBAL_UPLOAD=true
+        shift
+        ;;
     esac
 done
 
@@ -80,6 +126,9 @@ echo  "Building backend executables..."
 : "${VERSION:="0.0.0"}"
 : "${INFO:=""}"
 : "${OUTPUT_DIRECTORY:="$SCRIPT_ROOT"}"
+: "${DOCUMENT_LOCAL_UPLOAD:="false"}"
+: "${DOCUMENT_GLOBAL_UPLOAD:="false"}"
+: "${HEADER_TITLE:="NSERC Copilot"}"
 
 PUBLISH_OUTPUT_DIRECTORY="$OUTPUT_DIRECTORY/publish"
 PUBLISH_ZIP_DIRECTORY="$OUTPUT_DIRECTORY/out"
@@ -101,7 +150,7 @@ dotnet publish "$SCRIPT_ROOT/../../webapi/CopilotChatWebApi.csproj" \
     --output "$PUBLISH_OUTPUT_DIRECTORY" \
     -p:AssemblyVersion=$VERSION \
     -p:FileVersion=$VERSION \
-    -p:InformationalVersion=$INFO
+    -p:InformationalVersion=$INFO \
 
 if [ $? -ne 0 ]; then
     exit 1
@@ -120,6 +169,16 @@ if [[ -z "$SKIP_FRONTEND" ]]; then
     echo "REACT_APP_BACKEND_URI=" >> "$filePath"
     echo "REACT_APP_SK_VERSION=$Version" >> "$filePath"
     echo "REACT_APP_SK_BUILD_INFO=$InformationalVersion" >> "$filePath"
+    echo "REACT_APP_HEADER_TITLE=$HEADER_TITLE" >> "$filePath"
+    echo "REACT_APP_HEADER_TITLE_COLOR=$HEADER_TITLE_COLOR" >> "$filePath"
+    echo "REACT_APP_HEADER_BACKGROUND_COLOR=$HEADER_BACKGROUND_COLOR" >> "$filePath"
+    echo "REACT_APP_HEADER_LOGO=$LOGO" >> "$filePath"
+    echo "REACT_APP_SETTINGS_ENABLED=$SETTINGS_ENABLED" >> "$filePath"
+    echo "REACT_APP_HEADER_PLUGINS_ENABLED=$HEADER_PLUGINS_ENABLED" >> "$filePath"
+    echo "REACT_APP_LOCAL_DOCUMENT_UPLOAD_ENABLED=$DOCUMENT_LOCAL_UPLOAD" >> "$filePath"
+    echo "REACT_APP_GLOBAL_DOCUMENT_UPLOAD_ENABLED=$DOCUMENT_GLOBAL_UPLOAD" >> "$filePath"
+    echo "REACT_APP_CREATE_NEW_CHAT=$CreateNewChat" >> "$filePath"
+    echo "REACT_APP_DISCLAIMER_TEXT=$DISCLAIMER_MESSAGE" >> "$filePath"
 
     echo "Installing yarn dependencies..."
     yarn install

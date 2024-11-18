@@ -2,8 +2,14 @@ import { Subtitle1 } from '@fluentui/react-components';
 import React from 'react';
 import { AuthHelper } from '../..//libs/auth/AuthHelper';
 import { AppState, useClasses } from '../../App';
+import { FeatureKeys, Features } from '../../redux/features/app/AppState';
 import { UserSettingsMenu } from '../header/UserSettingsMenu';
 import { BackendProbe, ChatView, Error, Loading } from '../views';
+
+const disclaimerText =
+    Features[FeatureKeys.DisclaimerText].text !== '' ? Features[FeatureKeys.DisclaimerText].text : 'Unclassified';
+const headerTitle =
+    Features[FeatureKeys.HeaderTitle].text !== '' ? Features[FeatureKeys.HeaderTitle].text : 'Chat-Copilot';
 
 const Chat = ({
     classes,
@@ -26,10 +32,10 @@ const Chat = ({
     return (
         <div className={classes.container}>
             <div className={classes.banner}>
-                <strong>UNCLASSIFIED</strong>
+                <strong>{disclaimerText}</strong>
             </div>
             <div className={classes.header}>
-                <Subtitle1 as="h1">Gov Chat Copilot</Subtitle1>
+                <Subtitle1 as="h1">{headerTitle}</Subtitle1>
                 {appState > AppState.SettingUserInfo && (
                     <div className={classes.cornerItems}>
                         <div className={classes.cornerItems}>

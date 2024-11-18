@@ -41,6 +41,7 @@ interface Feature {
     label: string;
     inactive?: boolean; // Set to true if you don't want the user to control the visibility of this feature or there's no backend support
     description?: string;
+    text?: string; // Text to display in the feature (if applicable)
 }
 
 export interface Setting {
@@ -68,7 +69,8 @@ export enum FeatureKeys {
     SimplifiedExperience,
     Planners,
     Personas,
-    Documents,
+    GlobalDocumentUpload,
+    LocalDocumentUpload,
     AzureContentSafety,
     AzureAISearch,
     BotAsDocs,
@@ -76,6 +78,10 @@ export enum FeatureKeys {
     ExportChatSessions,
     LiveChatSessionSharing,
     RLHF, // Reinforcement Learning from Human Feedback
+    HeaderTitle,
+    HeaderTitleColor,
+    HeaderBackgroundColor,
+    DisclaimerText,
 }
 
 export const Features = {
@@ -93,10 +99,16 @@ export const Features = {
         description: 'The Plans tab is hidden until you turn this on',
         inactive: false,
     },
-    [FeatureKeys.Documents]: {
-        enabled: false,
-        label: 'Documents',
-        description: 'The DOcuments tab is hidden until you turn this on',
+    [FeatureKeys.GlobalDocumentUpload]: {
+        enabled: process.env.REACT_APP_GLOBAL_DOCUMENT_UPLOAD_ENABLED === 'true',
+        label: 'GlobalDocumentUpload',
+        description: 'The Documents tab is hidden until you turn this on',
+        inactive: false,
+    },
+    [FeatureKeys.LocalDocumentUpload]: {
+        enabled: process.env.REACT_APP_LOCAL_DOCUMENT_UPLOAD_ENABLED === 'true',
+        label: 'LocalDocumentUpload',
+        description: 'The paperclip icon is hidden until you turn this on, not allowing local file uploads',
         inactive: false,
     },
     [FeatureKeys.Personas]: {
@@ -141,6 +153,35 @@ export const Features = {
         label: 'Reinforcement Learning from Human Feedback',
         description: 'Enable users to vote on model-generated responses. For demonstration purposes only.',
         // TODO: [Issue #42] Send and store feedback in backend
+        inactive: false,
+    },
+    [FeatureKeys.HeaderTitle]: {
+        enabled: true,
+        label: 'Chat Header Title',
+        inactive: false,
+        description: 'Set chat header title text.',
+        text: process.env.REACT_APP_HEADER_TITLE,
+    },
+    [FeatureKeys.HeaderTitleColor]: {
+        enabled: true,
+        label: 'Chat Header Title Color',
+        inactive: false,
+        description: 'Set chat header title color.',
+        text: process.env.REACT_APP_HEADER_TITLE_COLOR,
+    },
+    [FeatureKeys.HeaderBackgroundColor]: {
+        enabled: true,
+        label: 'Chat Header Background Color',
+        inactive: false,
+        description: 'Set chat header background color.',
+        text: process.env.REACT_APP_HEADER_BACKGROUND_COLOR,
+    },
+    [FeatureKeys.DisclaimerText]: {
+        enabled: true,
+        label: 'Chat Disclaimer Text',
+        inactive: false,
+        description: 'Set disclaimer text at top of chat.',
+        text: process.env.REACT_APP_DISCLAIMER_TEXT,
     },
 };
 

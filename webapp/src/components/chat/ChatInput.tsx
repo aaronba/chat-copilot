@@ -15,6 +15,7 @@ import { AlertType } from '../../libs/models/AlertType';
 import { ChatMessageType } from '../../libs/models/ChatMessage';
 import { useAppDispatch, useAppSelector } from '../../redux/app/hooks';
 import { RootState } from '../../redux/app/store';
+import { FeatureKeys } from '../../redux/features/app/AppState';
 import { addAlert } from '../../redux/features/app/appSlice';
 import { editConversationInput, updateBotResponseStatus } from '../../redux/features/conversations/conversationsSlice';
 import { Alerts } from '../shared/Alerts';
@@ -80,6 +81,7 @@ interface ChatInputProps {
 
 export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeave, onSubmit }) => {
     const classes = useClasses();
+    const { features } = useAppSelector((state: RootState) => state.app);
     const { instance, inProgress } = useMsal();
     const dispatch = useAppDispatch();
     const { conversations, selectedId } = useAppSelector((state: RootState) => state.conversations);
@@ -221,30 +223,36 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                 />
             </div>
             <div className={classes.controls}>
-                <div className={classes.functional}>
-                    {/* Hidden input for file upload. Only accept .txt and .pdf files for now. */}
-                    <input
-                        type="file"
-                        ref={documentFileRef}
-                        style={{ display: 'none' }}
-                        accept={Constants.app.importTypes}
-                        multiple={true}
-                        onChange={() => {
-                            void fileHandler.handleImport(selectedId, documentFileRef);
-                        }}
-                    />
-                    <Button
-                        disabled={
-                            conversations[selectedId].disabled || (importingDocuments && importingDocuments.length > 0)
-                        }
-                        appearance="transparent"
-                        icon={<AttachRegular />}
-                        onClick={() => documentFileRef.current?.click()}
-                        title="Attach file"
-                        aria-label="Attach file button"
-                    />
-                    {importingDocuments && importingDocuments.length > 0 && <Spinner size="tiny" />}
-                </div>
+                {/* Check to see if document upload feature has been enabled */}
+                {features[FeatureKeys.LocalDocumentUpload].enabled && (
+                    <>
+                        <div className={classes.functional}>
+                            {/* Hidden input for file upload. Only accept .txt and .pdf files for now. */}
+                            <input
+                                type="file"
+                                ref={documentFileRef}
+                                style={{ display: 'none' }}
+                                accept={Constants.app.importTypes}
+                                multiple={true}
+                                onChange={() => {
+                                    void fileHandler.handleImport(selectedId, documentFileRef);
+                                }}
+                            />
+                            <Button
+                                disabled={
+                                    conversations[selectedId].disabled ||
+                                    (importingDocuments && importingDocuments.length > 0)
+                                }
+                                appearance="transparent"
+                                icon={<AttachRegular />}
+                                onClick={() => documentFileRef.current?.click()}
+                                title="Attach file"
+                                aria-label="Attach file button"
+                            />
+                            {importingDocuments && importingDocuments.length > 0 && <Spinner size="tiny" />}
+                        </div>
+                    </>
+                )}
                 <div className={classes.essentials}>
                     {recognizer && (
                         <Button
