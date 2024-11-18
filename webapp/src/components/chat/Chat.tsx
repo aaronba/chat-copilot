@@ -7,7 +7,7 @@ import { UserSettingsMenu } from '../header/UserSettingsMenu';
 import { BackendProbe, ChatView, Error, Loading } from '../views';
 
 const disclaimerText =
-    Features[FeatureKeys.DisclaimerText].text !== '' ? Features[FeatureKeys.DisclaimerText].text : 'Unclassified';
+    Features[FeatureKeys.BannerText].text !== '' ? Features[FeatureKeys.BannerText].text : 'Unclassified';
 const headerTitle =
     Features[FeatureKeys.HeaderTitle].text !== '' ? Features[FeatureKeys.HeaderTitle].text : 'Chat-Copilot';
 

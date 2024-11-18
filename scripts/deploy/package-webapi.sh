@@ -25,7 +25,7 @@ usage() {
     echo "  -l, --logo LOGO                        Header logo (default: none)"
     echo "  -dm, --disclaimer-message DISCLAIMER_MESSAGE Disclaimer message (default: none)"
     echo "  -se, --settings-enabled                Enable settings (default: false)"
-    echo "  -dlu, --document-local-upload          Enable local document upload (default: false)"
+    echo "  -dl, --document-local                  Enable local document upload (default: false)"
     echo "  -dgu, --document-global-upload         Enable global document upload (default: false)"
 
 }
@@ -73,14 +73,9 @@ while [[ $# -gt 0 ]]; do
         NO_ZIP=true
         shift
         ;;
-    -s|--skip-frontend)
-        SKIP_FRONTEND=true
+    -dl | --document-local)
+        DOCUMENT_LOCAL_UPLOAD=true
         shift
-        ;;
-        *)
-        echo "Unknown option $1"
-        usage
-        exit 1
         ;;
     -htc | --header-title-color)
         HEADER_TITLE_COLOR="$2"
@@ -97,8 +92,8 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
-    -dm | --disclaimer-message)
-        DISCLAIMER_MESSAGE="$2"
+    -dm | --banner-message)
+        BANNER_MESSAGE="$2"
         shift
         shift
         ;;
@@ -106,13 +101,18 @@ while [[ $# -gt 0 ]]; do
         SETTINGS_ENABLED=true
         shift
         ;;
-    -dlu | --document-local-upload)
-        DOCUMENT_LOCAL_UPLOAD=true
-        shift
-        ;;
-    -dgu | --document-global-upload)
+    -dg | --document-global)
         DOCUMENT_GLOBAL_UPLOAD=true
         shift
+        ;;
+    -s|--skip-frontend)
+        SKIP_FRONTEND=true
+        shift
+        ;;
+        *)
+        echo "Unknown option $1"
+        usage
+        exit 1
         ;;
     esac
 done
@@ -178,7 +178,7 @@ if [[ -z "$SKIP_FRONTEND" ]]; then
     echo "REACT_APP_LOCAL_DOCUMENT_UPLOAD_ENABLED=$DOCUMENT_LOCAL_UPLOAD" >> "$filePath"
     echo "REACT_APP_GLOBAL_DOCUMENT_UPLOAD_ENABLED=$DOCUMENT_GLOBAL_UPLOAD" >> "$filePath"
     echo "REACT_APP_CREATE_NEW_CHAT=$CreateNewChat" >> "$filePath"
-    echo "REACT_APP_DISCLAIMER_TEXT=$DISCLAIMER_MESSAGE" >> "$filePath"
+    echo "REACT_APP_BANNER_TEXT=$BANNER_MESSAGE" >> "$filePath"
 
     echo "Installing yarn dependencies..."
     yarn install

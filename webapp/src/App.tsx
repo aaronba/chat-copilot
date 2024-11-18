@@ -148,8 +148,8 @@ const App = () => {
         features[FeatureKeys.HeaderBackgroundColor].text !== ''
             ? features[FeatureKeys.HeaderBackgroundColor].text
             : '#003F72';
-    const disclaimerText =
-        features[FeatureKeys.DisclaimerText].text !== '' ? features[FeatureKeys.DisclaimerText].text : 'Unclassified';
+    const bannerText =
+        features[FeatureKeys.BannerText].text !== '' ? features[FeatureKeys.BannerText].text : 'Unclassified';
 
     return (
         <FluentProvider className="app-container" theme={theme}>
@@ -158,7 +158,7 @@ const App = () => {
                     <UnauthenticatedTemplate>
                         <div className={classes.container}>
                             <div className={classes.banner}>
-                                <strong>{disclaimerText}</strong>
+                                <strong>{bannerText}</strong>
                             </div>
                             <div
                                 style={{

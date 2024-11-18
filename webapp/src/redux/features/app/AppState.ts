@@ -81,7 +81,7 @@ export enum FeatureKeys {
     HeaderTitle,
     HeaderTitleColor,
     HeaderBackgroundColor,
-    DisclaimerText,
+    BannerText,
 }
 
 export const Features = {
@@ -176,12 +176,12 @@ export const Features = {
         description: 'Set chat header background color.',
         text: process.env.REACT_APP_HEADER_BACKGROUND_COLOR,
     },
-    [FeatureKeys.DisclaimerText]: {
+    [FeatureKeys.BannerText]: {
         enabled: true,
-        label: 'Chat Disclaimer Text',
+        label: 'Chat Banner Text',
         inactive: false,
-        description: 'Set disclaimer text at top of chat.',
-        text: process.env.REACT_APP_DISCLAIMER_TEXT,
+        description: 'Set banner text at top of chat.',
+        text: process.env.REACT_APP_BANNER_TEXT,
     },
 };
 
