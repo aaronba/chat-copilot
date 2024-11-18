@@ -31,6 +31,10 @@ public class DocumentTypeProvider
                 { FileExtensions.ImageJpg, true },
                 { FileExtensions.ImageJpeg, true },
                 { FileExtensions.ImageTiff, true },
+                { FileExtensions.MsPowerPoint, false},
+                { FileExtensions.MsPowerPointX, false},
+                { FileExtensions.MsExcel, false},
+                { FileExtensions.MsExcelX, false}
             };
     }
 
