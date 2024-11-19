@@ -149,7 +149,7 @@ export const ChatWindow: React.FC = () => {
                         <Tab data-testid="chatTab" id="chat" value="chat" aria-label="Chat Tab" title="Chat Tab">
                             Chat
                         </Tab>
-                        {features[FeatureKeys.GlobalDocumentUpload].enabled && (
+                        {features[FeatureKeys.LocalDocumentUpload].enabled && (
                             <Tab
                                 data-testid="documentsTab"
                                 id="documents"

@@ -44,6 +44,7 @@ import { useChat, useFile } from '../../../libs/hooks';
 import { ChatMemorySource } from '../../../libs/models/ChatMemorySource';
 import { useAppSelector } from '../../../redux/app/hooks';
 import { RootState } from '../../../redux/app/store';
+import { FeatureKeys } from '../../../redux/features/app/AppState';
 import { Add20 } from '../../shared/BundledIcons';
 import { timestampToDateString } from '../../utils/TextUtils';
 import { TabView } from './TabView';
@@ -93,6 +94,7 @@ export const DocumentsTab: React.FC = () => {
     const classes = useClasses();
     const chat = useChat();
     const fileHandler = useFile();
+    const { features } = useAppSelector((state: RootState) => state.app);
 
     const { serviceInfo } = useAppSelector((state: RootState) => state.app);
     const { conversations, selectedId } = useAppSelector((state: RootState) => state.conversations);
@@ -182,19 +184,21 @@ export const DocumentsTab: React.FC = () => {
                                     (importingDocuments && importingDocuments.length > 0)
                                 }
                             >
-                                New local chat document
+                                New chat document
                             </MenuItem>
-                            <MenuItem
-                                data-testid="addNewLocalDoc"
-                                onClick={() => globalDocumentFileRef.current?.click()}
-                                icon={<GlobeAdd20Regular />}
-                                disabled={
-                                    conversations[selectedId].disabled ||
-                                    (importingDocuments && importingDocuments.length > 0)
-                                }
-                            >
-                                New global document
-                            </MenuItem>
+                            {features[FeatureKeys.GlobalDocumentUpload].enabled && (
+                                <MenuItem
+                                    data-testid="addNewLocalDoc"
+                                    onClick={() => globalDocumentFileRef.current?.click()}
+                                    icon={<GlobeAdd20Regular />}
+                                    disabled={
+                                        conversations[selectedId].disabled ||
+                                        (importingDocuments && importingDocuments.length > 0)
+                                    }
+                                >
+                                    New global document
+                                </MenuItem>
+                            )}
                         </MenuList>
                     </MenuPopover>
                 </Menu>
