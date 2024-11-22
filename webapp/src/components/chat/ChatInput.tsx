@@ -71,6 +71,17 @@ const useClasses = makeStyles({
         color: tokens.colorBrandForeground1,
         caretColor: 'transparent',
     },
+    warningText: {
+        color: 'red',
+        fontSize: tokens.fontSizeBase300,
+        marginTop: tokens.spacingVerticalXS,
+    },
+    characterCount: {
+        fontSize: tokens.fontSizeBase300,
+        color: tokens.colorNeutralForeground3,
+        marginTop: tokens.spacingVerticalXS,
+        textAlign: 'right',
+    },
 });
 
 interface ChatInputProps {
@@ -91,6 +102,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
     const [value, setValue] = useState('');
     const [recognizer, setRecognizer] = useState<speechSdk.SpeechRecognizer>();
     const [isListening, setIsListening] = useState(false);
+    const [inputLength, setInputLength] = useState(0);
     const { importingDocuments } = conversations[selectedId];
 
     const documentFileRef = useRef<HTMLInputElement | null>(null);
@@ -122,6 +134,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
     React.useEffect(() => {
         const chatState = conversations[selectedId];
         setValue(chatState.disabled ? COPY.CHAT_DELETED_MESSAGE() : chatState.input);
+        setInputLength(chatState.input.length);
     }, [conversations, selectedId]);
 
     const handleSpeech = () => {
@@ -144,6 +157,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
         }
 
         setValue('');
+        setInputLength(0);
         dispatch(editConversationInput({ id: selectedId, newInput: '' }));
         dispatch(updateBotResponseStatus({ chatId: selectedId, status: 'Calling the kernel' }));
         onSubmit({ value, messageType, chatId: selectedId }).catch((error) => {
@@ -162,6 +176,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
         onDragLeave(e);
         void fileHandler.handleImport(selectedId, documentFileRef, false, undefined, e.dataTransfer.files);
     };
+
+    // Get the character limit from the environment variable, default to 30000 if not found
+    const characterLimit = parseInt(process.env.REACT_APP_CHARACTER_LIMIT ?? '30000', 10);
 
     return (
         <div className={classes.root}>
@@ -204,6 +221,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                         }
 
                         setValue(data.value);
+                        setInputLength(data.value.length);
                         dispatch(editConversationInput({ id: selectedId, newInput: data.value }));
                     }}
                     onKeyDown={(event) => {
@@ -222,12 +240,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                     }}
                 />
             </div>
+
             <div className={classes.controls}>
                 {/* Check to see if document upload feature has been enabled */}
                 {features[FeatureKeys.LocalDocumentUpload].enabled && (
                     <>
                         <div className={classes.functional}>
-                            {/* Hidden input for file upload. Only accept .txt and .pdf files for now. */}
+                            {/* Hidden input for file upload. Only accept .txt and ..pdf files for now. */}
                             <input
                                 type="file"
                                 ref={documentFileRef}
@@ -254,6 +273,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                     </>
                 )}
                 <div className={classes.essentials}>
+                    {inputLength > characterLimit && (
+                        <div className={classes.warningText}>
+                            The input text exceeds {characterLimit} characters. Please shorten your message.
+                        </div>
+                    )}
+                    <div className={classes.characterCount}>
+                        {inputLength} / {characterLimit} characters
+                    </div>
+
                     {recognizer && (
                         <Button
                             appearance="transparent"
@@ -270,7 +298,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                         onClick={() => {
                             handleSubmit(value);
                         }}
-                        disabled={conversations[selectedId].disabled}
+                        disabled={conversations[selectedId].disabled || inputLength > characterLimit}
                     />
                 </div>
             </div>

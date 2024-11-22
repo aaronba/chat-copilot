@@ -1,7 +1,7 @@
-import { Subtitle1 } from '@fluentui/react-components';
 import React from 'react';
 import { AuthHelper } from '../..//libs/auth/AuthHelper';
 import { AppState, useClasses } from '../../App';
+import logo from '../../assets/frontend-icons/logo.png'; // Adjust the path as needed
 import { FeatureKeys, Features } from '../../redux/features/app/AppState';
 import { UserSettingsMenu } from '../header/UserSettingsMenu';
 import { BackendProbe, ChatView, Error, Loading } from '../views';
@@ -35,7 +35,7 @@ const Chat = ({
                 <strong>{disclaimerText}</strong>
             </div>
             <div className={classes.header}>
-                <Subtitle1 as="h1">{headerTitle}</Subtitle1>
+                <img width="200" height="40" aria-label={headerTitle} src={logo}></img>
                 {appState > AppState.SettingUserInfo && (
                     <div className={classes.cornerItems}>
                         <div className={classes.cornerItems}>
