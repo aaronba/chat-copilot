@@ -12,6 +12,14 @@
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>CA1812,CA2234,CS1570,CS1572,CS1573,CS1574,CA1056,CA1716,CA1724,SKEXP0003,SKEXP0011,SKEXP0021,SKEXP0026,SKEXP0042,SKEXP0050,SKEXP0052,SKEXP0053,SKEXP0060,KMEXP02,SKEXP0040,SKEXP0010,SKEXP0001</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>CA1812,CA2234,CS1570,CS1572,CS1573,CS1574,CA1056,CA1716,CA1724,SKEXP0003,SKEXP0011,SKEXP0021,SKEXP0026,SKEXP0042,SKEXP0050,SKEXP0052,SKEXP0053,SKEXP0060,KMEXP02,SKEXP0040,SKEXP0010,SKEXP0001</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
@@ -48,6 +56,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Plugins\NativePlugins\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
 </Project>

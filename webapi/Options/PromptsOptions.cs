@@ -12,6 +12,13 @@ public class PromptsOptions
 {
     public const string PropertyName = "Prompts";
 
+
+    /// <summary>
+    /// Group documents will be tagged by a configurable Guid as chat-id.
+    /// </summary>
+    [Required]
+    public Guid GroupDocumentChatId { get; set; } = new Guid("11111111-1111-1111-1111-111111111111");
+
     /// <summary>
     /// Token limit of the chat model.
     /// </summary>

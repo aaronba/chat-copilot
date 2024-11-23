@@ -8,6 +8,7 @@ using CopilotChat.WebApi.Options;
 using CopilotChat.WebApi.Plugins.Utils;
 using CopilotChat.WebApi.Storage;
 using Microsoft.Extensions.Options;
+using Microsoft.Graph;
 using Microsoft.KernelMemory;
 
 namespace CopilotChat.WebApi.Plugins.Chat;
@@ -145,13 +146,23 @@ public class KernelMemoryRetriever
         // </summary>
         async Task SearchMemoryAsync(string memoryName, bool isGlobalMemory = false)
         {
+            Guid groupDocumentChatId = this._promptOptions.GroupDocumentChatId;
+
+         //   var searchResult =
+         //       await this._memoryClient.SearchMemoryAsync(
+         //           this._promptOptions.MemoryIndexName,
+         //           query,
+         //           this.CalculateRelevanceThreshold(memoryName, chatSession!.MemoryBalance),
+         //           isGlobalMemory ? DocumentMemoryOptions.GlobalDocumentChatId.ToString() : chatId,
+         //           memoryName);
+
             var searchResult =
                 await this._memoryClient.SearchMemoryAsync(
-                    this._promptOptions.MemoryIndexName,
-                    query,
-                    this.CalculateRelevanceThreshold(memoryName, chatSession!.MemoryBalance),
-                    isGlobalMemory ? DocumentMemoryOptions.GlobalDocumentChatId.ToString() : chatId,
-                    memoryName);
+                this._promptOptions.MemoryIndexName,
+                query,
+                this.CalculateRelevanceThreshold(memoryName, chatSession!.MemoryBalance),
+                isGlobalMemory ? groupDocumentChatId.ToString() : chatId,
+                memoryName);
 
             foreach (var result in searchResult.Results.SelectMany(c => c.Partitions.Select(p => (c, p))))
             {

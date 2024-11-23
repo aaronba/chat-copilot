@@ -1,17 +1,36 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using CopilotChat.WebApi.Hubs;
 using CopilotChat.WebApi.Models.Response;
 using CopilotChat.WebApi.Options;
 using CopilotChat.WebApi.Plugins.Chat;
 using CopilotChat.WebApi.Services;
 using CopilotChat.WebApi.Storage;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Plugins.Core;
+using Azure.Search;
+using Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Models;
+
+using Microsoft.Azure.Cosmos;
 
 namespace CopilotChat.WebApi.Extensions;
 
@@ -60,7 +79,7 @@ internal static class SemanticKernelExtensions
 
         // Add any additional setup needed for the kernel.
         // Uncomment the following line and pass in a custom hook for any complimentary setup of the kernel.
-        // builder.Services.AddKernelSetupHook(customHook);
+        builder.Services.AddKernelSetupHook(RegisterPluginsAsync);
 
         return builder;
     }
@@ -111,7 +130,56 @@ internal static class SemanticKernelExtensions
     private static void InitializeKernelProvider(this WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(sp => new SemanticKernelProvider(sp, builder.Configuration, sp.GetRequiredService<IHttpClientFactory>()));
+
+
+        //        // Azure AI Search configuration
+        Uri endpoint = new Uri(builder.Configuration.GetConnectionString("AISearchEndpoint"));
+        AzureKeyCredential keyCredential = new AzureKeyCredential(builder.Configuration.GetConnectionString("AISearchKey"));
+
+
+        // SearchIndexClient from Azure .NET SDK to perform search operations.
+        builder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+
+        // Custom AzureAISearchService to configure request parameters and make a request.
+        builder.Services.AddSingleton<IAzureAISearchService, AzureAISearchService>();
+
+
+        // Embedding generation service to convert string query to vector
+        builder.Services.AddAzureOpenAITextEmbeddingGeneration(
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsDeploymentName"),
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsEndpoint"),
+            builder.Configuration.GetConnectionString("AzureOpenAIEmbeddingsApiKey"));
+
+
+        //ConfigureStyleGuide(builder);
+
+
+
     }
+
+    /*
+    private static void ConfigureStyleGuide(WebApplicationBuilder builder)
+    {
+        //StyleGuide
+        string cosmos_endpoint = builder.Configuration.GetSection("StyleGuide").GetSection("CosmosDB_Endpoint").Value;
+        string cosmos_key = builder.Configuration.GetSection("StyleGuide").GetSection("CosmosDB_Key").Value;
+
+        var cosmosSerializationOptions = new CosmosSerializationOptions
+        {
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        };
+
+        CosmosClientOptions cosmosClientOptions = new() { ConnectionMode = ConnectionMode.Gateway, SerializerOptions = cosmosSerializationOptions };
+
+
+        builder.Services.AddSingleton<CosmosClient>((_) => new CosmosClient(cosmos_endpoint, cosmos_key, cosmosClientOptions));
+
+
+        builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
+
+        // End of Style Guide configuration
+    }
+    */
 
     /// <summary>
     /// Register functions with the main kernel responsible for handling Chat Copilot requests.
@@ -156,6 +224,7 @@ internal static class SemanticKernelExtensions
         {
             // Loop through all the files in the directory that have the .cs extension
             var pluginFiles = Directory.GetFiles(options.NativePluginsDirectory, "*.cs");
+            //pluginFiles = pluginFiles.Concat(Directory.GetFiles($"{options.NativePluginsDirectory}/StyleGuide", "*.cs")).ToArray();
             foreach (var file in pluginFiles)
             {
                 // Parse the name of the class from the file name (assuming it matches)
@@ -170,8 +239,31 @@ internal static class SemanticKernelExtensions
                 {
                     try
                     {
-                        var plugin = Activator.CreateInstance(classType);
-                        kernel.ImportPluginFromObject(plugin!, classType.Name!);
+
+                        if (classType.Name == "MyAzureAISearchPlugin")
+                        {
+                            kernel.ImportPluginFromObject(
+                                new MyAzureAISearchPlugin(
+                                    textEmbeddingGenerationService: sp.GetRequiredService<ITextEmbeddingGenerationService>(),
+                                    searchService: sp.GetRequiredService<IAzureAISearchService>()),
+                                    nameof(MyAzureAISearchPlugin)
+                                    );
+
+                            // SearchIndexClient from Azure .NET SDK to perform search operations.
+                            //kernelBuilder.Services.AddSingleton<SearchIndexClient>((_) => new SearchIndexClient(endpoint, keyCredential));
+                        }
+                        else if (classType.Name == "StyleGuideResultsPlugin")
+                        {
+                            //kernel.ImportPluginFromObject(
+                            //    new StyleGuideResultsPlugin(kernel,
+                            //    cosmosDBService: sp.GetRequiredService<ICosmosDBService>()),
+                            //    nameof(StyleGuideResultsPlugin));
+                        }
+                        else
+                        {
+                            var plugin = Activator.CreateInstance(classType);
+                            kernel.ImportPluginFromObject(plugin!, classType.Name!);
+                        }
                     }
                     catch (KernelException ex)
                     {
