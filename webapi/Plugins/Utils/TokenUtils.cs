@@ -75,7 +75,7 @@ public static class TokenUtils
         try
         {
             var jsonObject = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(usageObject));
-            tokenUsage = jsonObject.GetProperty("TotalTokens").GetInt32();
+            tokenUsage = jsonObject.GetProperty("TotalTokenCount").GetInt32();
         }
         catch (KeyNotFoundException)
         {
