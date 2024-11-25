@@ -114,10 +114,12 @@ export const SettingsDialog: React.FC<ISettingsDialogProps> = ({ open, closeDial
                 </DialogBody>
                 <DialogActions position="start" className={dialogClasses.footer}>
                     <Label size="small" color="brand" className={classes.footer}>
+                        {/*
                         Join the Semantic Kernel open source community!{' '}
                         <a href="https://aka.ms/semantic-kernel" target="_blank" rel="noreferrer">
                             Learn More
                         </a>
+                        */}
                     </Label>
                     <DialogTrigger disableButtonEnhancement>
                         <Button appearance="secondary" data-testid="userSettingsCloseButton">

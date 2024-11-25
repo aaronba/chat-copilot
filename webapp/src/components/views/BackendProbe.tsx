@@ -5,7 +5,7 @@ import { Body1, Spinner, Title3 } from '@fluentui/react-components';
 import { FC, useEffect, useMemo, useState } from 'react';
 import { renderApp } from '../../index';
 import { AuthHelper } from '../../libs/auth/AuthHelper';
-import { BackendServiceUrl, NetworkErrorMessage } from '../../libs/services/BaseService';
+import { NetworkErrorMessage } from '../../libs/services/BaseService';
 import { MaintenanceService, MaintenanceStatus } from '../../libs/services/MaintenanceService';
 import { useAppDispatch, useAppSelector } from '../../redux/app/hooks';
 import { RootState } from '../../redux/app/store';
@@ -87,20 +87,23 @@ export const BackendProbe: FC<IData> = ({ onBackendFound }) => {
                     <Title3>Connecting...</Title3>
                     <Spinner />
                     <Body1>
-                        This app expects to find a server running at <strong>{BackendServiceUrl}</strong>
+                        {/* This app expects to find a server running at <strong>{BackendServiceUrl}</strong> */}
                     </Body1>
                     <Body1>
+                        {/*
+
+                            
                         To run the server locally, use Visual Studio, Visual Studio Code, or type the following command:{' '}
                         <code>
                             <strong>dotnet run</strong>
-                        </code>
+                            </code> */}
                     </Body1>
                     <Body1>
-                        If running locally, ensure that you have the{' '}
+                        {/*                       If running locally, ensure that you have the{' '}
                         <code>
                             <b>REACT_APP_BACKEND_URI</b>
                         </code>{' '}
-                        variable set in your <b>webapp/.env</b> file
+                            variable set in your <b>webapp/.env</b> file */}
                     </Body1>
                 </div>
             )}

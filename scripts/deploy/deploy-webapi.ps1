@@ -20,7 +20,6 @@ param(
     # Resource group to which to make the deployment
     $ResourceGroupName,
     
-    [Parameter(Mandatory)]
     [string]
     # Name of the previously deployed Azure deployment 
     $DeploymentName,
@@ -38,7 +37,15 @@ param(
     
     [switch]
     # Don't attempt to add our URIs in CORS origins for our plugins
-    $SkipCorsRegistration
+    $SkipCorsRegistration,
+
+    [string]
+    # Web API name
+    $WebApi,
+
+    [string]
+    # Web API URL
+    $WebApiUrl
 )
 
 # Ensure $PackageFilePath exists
@@ -71,34 +78,41 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Write-Host "Getting Azure WebApp resource name..."
-$deployment = $(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json)
-$webApiUrl = $deployment.properties.outputs.webapiUrl.value
-$webApiName = $deployment.properties.outputs.webapiName.value
-$pluginNames = $deployment.properties.outputs.pluginNames.value
+if (-not $WebApi -or -not $WebApiUrl) {
+    if (-not $DeploymentName) {
+        Write-Error "Either DeploymentName or both WebApi and WebApiUrl must be provided."
+        exit 1
+    }
 
-if ($null -eq $webApiName) {
-    Write-Error "Could not get Azure WebApp resource name from deployment output."
-    exit 1
+    Write-Host "Getting Azure WebApp resource name..."
+    $deployment = $(az deployment group show --name $DeploymentName --resource-group $ResourceGroupName --output json | ConvertFrom-Json)
+    $WebApiUrl = $deployment.properties.outputs.webapiUrl.value
+    $WebApi = $deployment.properties.outputs.webapiName.value
+    $pluginNames = $deployment.properties.outputs.pluginNames.value
+
+    if ($null -eq $WebApi) {
+        Write-Error "Could not get Azure WebApp resource name from deployment output."
+        exit 1
+    }
 }
 
-Write-Host "Azure WebApp name: $webApiName"
+Write-Host "Azure WebApp name: $WebApi"
 
 Write-Host "Configuring Azure WebApp to run from package..."
-az webapp config appsettings set --resource-group $ResourceGroupName --name $webApiName --settings WEBSITE_RUN_FROM_PACKAGE="1" --output none
+az webapp config appsettings set --resource-group $ResourceGroupName --name $WebApi --settings WEBSITE_RUN_FROM_PACKAGE="1" --output none
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
 # Set up deployment command as a string
-$azWebAppCommand = "az webapp deployment source config-zip --resource-group $ResourceGroupName --name $webApiName --src $PackageFilePath"
+$azWebAppCommand = "az webapp deployment source config-zip --resource-group $ResourceGroupName --name $WebApi --src $PackageFilePath"
 
 # Check if DeploymentSlot parameter was passed
-$origins = @("$webApiUrl")
+$origins = @("$WebApiUrl")
 if ($DeploymentSlot) {
-    Write-Host "Checking if slot $DeploymentSlot exists for '$webApiName'..."
+    Write-Host "Checking if slot $DeploymentSlot exists for '$WebApi'..."
     $azWebAppCommand += " --slot $DeploymentSlot"
-    $slotInfo = az webapp deployment slot list --resource-group $ResourceGroupName --name $webApiName | ConvertFrom-JSON
+    $slotInfo = az webapp deployment slot list --resource-group $ResourceGroupName --name $WebApi | ConvertFrom-JSON
     $availableSlots = $slotInfo | Select-Object -Property Name
     $origins = $slotInfo | Select-Object -Property defaultHostName
     $slotExists = false
@@ -113,12 +127,12 @@ if ($DeploymentSlot) {
     # Web App deployment slot does not exist, create it
     if (!$slotExists) {
         Write-Host "Deployment slot $DeploymentSlot does not exist, creating..."
-        az webapp deployment slot create --slot $DeploymentSlot --resource-group $ResourceGroupName --name $webApiName --output none
-        $origins = az webapp deployment slot list --resource-group $ResourceGroupName --name $webApiName | ConvertFrom-JSON | Select-Object -Property defaultHostName
+        az webapp deployment slot create --slot $DeploymentSlot --resource-group $ResourceGroupName --name $WebApi --output none
+        $origins = az webapp deployment slot list --resource-group $ResourceGroupName --name $WebApi | ConvertFrom-JSON | Select-Object -Property defaultHostName
     }
 }
 
-Write-Host "Deploying '$PackageFilePath' to Azure WebApp '$webApiName'..."
+Write-Host "Deploying '$PackageFilePath' to Azure WebApp '$WebApi'..."
 
 # Invoke the command string
 Invoke-Expression $azWebAppCommand
@@ -127,7 +141,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if (-Not $SkipAppRegistration) {
-    $webapiSettings = $(az webapp config appsettings list --name $webapiName --resource-group $ResourceGroupName | ConvertFrom-JSON)
+    $webapiSettings = $(az webapp config appsettings list --name $WebApi --resource-group $ResourceGroupName | ConvertFrom-JSON)
     $frontendClientId = ($webapiSettings | Where-Object -Property name -EQ -Value Frontend:AadClientId).value
     $objectId = (az ad app show --id $frontendClientId | ConvertFrom-Json).id
     $redirectUris = (az rest --method GET --uri "https://graph.microsoft.$suffix/v1.0/applications/$objectId" --headers 'Content-Type=application/json' | ConvertFrom-Json).spa.redirectUris
@@ -179,4 +193,4 @@ if (-Not $SkipCorsRegistration) {
     }
 }
 
-Write-Host "To verify your deployment, go to 'https://$webApiUrl/' in your browser."
+Write-Host "To verify your deployment, go to 'https://$WebApiUrl/' in your browser."
