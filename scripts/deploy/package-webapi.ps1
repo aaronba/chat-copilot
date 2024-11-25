@@ -22,15 +22,47 @@ param(
 
     [string]
     # Version to give to assemblies and files.
-    $Version = "0.0.0",
+    $Version = "1.0.0",
 
     [string]
     # Additional information given in version info.
     $InformationalVersion = "",
-    
+
     [bool]
     # Whether to skip building frontend files (false by default)
-    $SkipFrontendFiles = $false
+    $SkipFrontendFiles = $false,
+
+    [string]
+    # Header title
+    $HeaderTitle = "Chat Copilot",
+
+    [string]
+    # Header title color
+    $HeaderTitleColor = "#000000",
+
+    [string]
+    # Header background color
+    $HeaderBackgroundColor = "#FFFFFF",
+
+    [string]
+    # Header logo
+    $Logo = "",
+
+    [string]
+    # Disclaimer message
+    $BannerMessage = "",
+
+    [string]
+    # Enable settings
+    $SettingsEnabled = "true",
+
+    [string]
+    # Enable local document upload
+    $DocumentLocalUpload = "true",
+
+    [string]
+    # Enable global document upload
+    $DocumentGlobalUpload = "false"
 )
 
 Write-Host "Building backend executables..."
@@ -71,6 +103,18 @@ if (-Not $SkipFrontendFiles) {
     Add-Content -Path $filePath -Value "REACT_APP_BACKEND_URI="
     Add-Content -Path $filePath -Value "REACT_APP_SK_VERSION=$Version"
     Add-Content -Path $filePath -Value "REACT_APP_SK_BUILD_INFO=$InformationalVersion"
+    Add-Content -Path $filePath -Value "REACT_APP_HEADER_TITLE=$HeaderTitle"
+    Add-Content -Path $filePath -Value "REACT_APP_HEADER_TITLE_COLOR=$HeaderTitleColor"
+    Add-Content -Path $filePath -Value "REACT_APP_HEADER_BACKGROUND_COLOR=$HeaderBackgroundColor"
+    Add-Content -Path $filePath -Value "REACT_APP_HEADER_LOGO=$Logo"
+    Add-Content -Path $filePath -Value "REACT_APP_SETTINGS_ENABLED=$SettingsEnabled"
+    Add-Content -Path $filePath -Value "REACT_APP_LOCAL_DOCUMENT_UPLOAD_ENABLED=$DocumentLocalUpload"
+    Add-Content -Path $filePath -Value "REACT_APP_GLOBAL_DOCUMENT_UPLOAD_ENABLED=$DocumentGlobalUpload"
+    Add-Content -Path $filePath -Value "REACT_APP_BANNER_TEXT=$BannerMessage"
+
+    # Debug: List the contents of the .env.production file
+    Write-Host "Contents of .env.production file:"
+    Get-Content -Path $filePath | ForEach-Object { Write-Host $_ }
 
     Write-Host "Installing yarn dependencies..."
     yarn install
