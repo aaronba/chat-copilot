@@ -3,16 +3,19 @@
 # Deploy Chat Copilot application to Azure
 
 usage() {
-    echo "Usage: $0 -d DEPLOYMENT_NAME -s SUBSCRIPTION -rg RESOURCE_GROUP [OPTIONS]"
+    echo "Usage: $0 -s SUBSCRIPTION -rg RESOURCE_GROUP [OPTIONS]"
     echo ""
     echo "Arguments:"
-    echo "  -d, --deployment-name DEPLOYMENT_NAME   Name of the deployment from a 'deploy-azure.sh' deployment (mandatory)"
+    echo "  -d, --deployment-name DEPLOYMENT_NAME   Name of the deployment from a 'deploy-azure.sh' deployment"
     echo "  -s, --subscription SUBSCRIPTION         Subscription to which to make the deployment (mandatory)"
     echo "  -rg, --resource-group RESOURCE_GROUP    Resource group name from a 'deploy-azure.sh' deployment (mandatory)"
     echo "  -p, --package PACKAGE_FILE_PATH         Path to the package file from a 'package-webapi.sh' run (default: \"./out/webapi.zip\")"
     echo "  -o, --slot DEPLOYMENT_SLOT              Name of the target web app deployment slot"
     echo "  -sr, --skip-app-registration            Skip adding our URI in app registration's redirect URIs"
     echo "  -sc, --skip-cors-registration           Skip registration of service with the plugins as allowed CORS origin"
+    echo "  -e, --environment ENVIRONMENT           Azure cloud environment (default: AzureCloud)"
+    echo "  -wa, --webApi WEB_API_NAME              Web API name"
+    echo "  -wu, --webApiUrl WEB_API_URL            Web API URL"
 }
 
 # Parse arguments
@@ -61,6 +64,16 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
+    -wa |--webApi)
+        WEB_API_NAME="$2"
+        shift
+        shift
+        ;;
+    -wu |--webApiUrl)
+        WEB_API_URL="$2"
+        shift
+        shift
+        ;;
     *)
         echo "Unknown option $1"
         usage
@@ -70,7 +83,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check mandatory arguments
-if [[ -z "$DEPLOYMENT_NAME" ]] || [[ -z "$SUBSCRIPTION" ]] || [[ -z "$RESOURCE_GROUP" ]]; then
+if [[ -z "$SUBSCRIPTION" ]] || [[ -z "$RESOURCE_GROUP" ]]; then
     usage
     exit 1
 fi
@@ -83,8 +96,6 @@ if [[ ! -f "$PACKAGE_FILE_PATH" ]]; then
     echo "Package file '$PACKAGE_FILE_PATH' does not exist. Have you run 'package-webapi.sh' yet?"
     exit 1
 fi
-
-
 # Ensure that the environment variable is set
 if [[ -z "$ENVIRONMENT" ]]; then
     echo "Error: Environment not set. Please set the environment to either 'AzureCloud' or 'AzureUSGovernment'."
@@ -110,20 +121,27 @@ fi
 
 az account set -s "$SUBSCRIPTION"
 
-echo "Getting Azure WebApp resource name..."
-DEPLOYMENT_JSON=$(az deployment group show --name $DEPLOYMENT_NAME --resource-group $RESOURCE_GROUP --output json)
-WEB_API_URL=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.webapiUrl.value')
-echo "WEB_API_URL: $WEB_API_URL"
-WEB_API_NAME=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.webapiName.value')
-echo "WEB_API_NAME: $WEB_API_NAME"
-PLUGIN_NAMES=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.pluginNames.value[]')
-# Remove double quotes
-PLUGIN_NAMES=${PLUGIN_NAMES//\"/}
-echo "PLUGIN_NAMES: $PLUGIN_NAMES"
-# Ensure $WEB_API_NAME is set
-if [[ -z "$WEB_API_NAME" ]]; then
-    echo "Could not get Azure WebApp resource name from deployment output."
-    exit 1
+if [[ -z "$WEB_API_NAME" || -z "$WEB_API_URL" ]]; then
+    if [[ -z "$DEPLOYMENT_NAME" ]]; then
+        echo "Either DeploymentName or both WebApi and WebApiUrl must be provided."
+        exit 1
+    fi
+
+    echo "Getting Azure WebApp resource name..."
+    DEPLOYMENT_JSON=$(az deployment group show --name $DEPLOYMENT_NAME --resource-group $RESOURCE_GROUP --output json)
+    WEB_API_URL=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.webapiUrl.value')
+    echo "WEB_API_URL: $WEB_API_URL"
+    WEB_API_NAME=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.webapiName.value')
+    echo "WEB_API_NAME: $WEB_API_NAME"
+    PLUGIN_NAMES=$(echo $DEPLOYMENT_JSON | jq -r '.properties.outputs.pluginNames.value[]')
+    # Remove double quotes
+    PLUGIN_NAMES=${PLUGIN_NAMES//\"/}
+    echo "PLUGIN_NAMES: $PLUGIN_NAMES"
+    # Ensure $WEB_API_NAME is set
+    if [[ -z "$WEB_API_NAME" ]]; then
+        echo "Could not get Azure WebApp resource name from deployment output."
+        exit 1
+    fi
 fi
 
 echo "Configuring Azure WebApp to run from package..."
@@ -139,11 +157,11 @@ AZ_WEB_APP_CMD="az webapp deployment source config-zip --resource-group $RESOURC
 ORIGINS="$WEB_API_URL"
 if [ -n "$DEPLOYMENT_SLOT" ]; then
     AZ_WEB_APP_CMD+=" --slot ${DEPLOYMENT_SLOT}"
-    echo "Checking whether slot $DEPLOYMENT_SLOT exists for $WEB_APP_NAME..."
+    echo "Checking whether slot $DEPLOYMENT_SLOT exists for $WEB_API_NAME..."
     SLOT_INFO=$(az webapp deployment slot list --resource-group $RESOURCE_GROUP --name $WEB_API_NAME)
 
     AVAILABLE_SLOTS=$(echo $SLOT_INFO | jq '.[].name')
-    ORIGINS=$(echo $slotInfo | jq '.[].defaultHostName')
+    ORIGINS=$(echo $SLOT_INFO | jq '.[].defaultHostName')
     SLOT_EXISTS=false
 
     # Checking if the slot exists
