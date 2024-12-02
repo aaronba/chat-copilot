@@ -12,7 +12,7 @@ export const Login: React.FC = () => {
 
     return (
         <div className={classes.informativeView}>
-            <Title3>Sign in with Azure AD</Title3>
+            <Title3>Sign in with Azure Entra ID</Title3>
             <Button
                 style={{ padding: 5, border: '1px solid #000' }}
                 appearance="transparent"

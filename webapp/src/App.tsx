@@ -1,5 +1,5 @@
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useIsAuthenticated, useMsal } from '@azure/msal-react';
-import { FluentProvider, makeStyles, shorthands, Subtitle1, tokens } from '@fluentui/react-components';
+import { FluentProvider, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 
 import * as React from 'react';
 import { useCallback, useEffect } from 'react';
@@ -13,6 +13,7 @@ import { RootState } from './redux/app/store';
 import { FeatureKeys, Features } from './redux/features/app/AppState';
 import { addAlert, setActiveUserInfo, setServiceInfo } from './redux/features/app/appSlice';
 import { semanticKernelDarkTheme, semanticKernelLightTheme } from './styles';
+import logo from './assets/frontend-icons/logo.png';
 
 const headerTitleColor =
     Features[FeatureKeys.HeaderTitleColor].text != '' ? Features[FeatureKeys.HeaderTitleColor].text : 'white';
@@ -170,7 +171,7 @@ const App = () => {
                                 }}
                             >
                                 <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '57%' }}>
-                                    <Subtitle1 as="h1">{chatTitle}</Subtitle1>
+                                    <img width="200" height="40" aria-label={chatTitle} src={logo}></img>
                                 </div>
                             </div>
                             {appState === AppState.SigningOut && <Loading text="Signing you out..." />}
