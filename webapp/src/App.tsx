@@ -152,6 +152,11 @@ const App = () => {
     const bannerText =
         features[FeatureKeys.BannerText].text !== '' ? features[FeatureKeys.BannerText].text : 'Unclassified';
 
+    useEffect(() => {
+        // Dynamically set the document title using Features
+        document.title = chatTitle ?? 'Chat Copilot';
+    }, [chatTitle]); // Runs once on component mount
+    
     return (
         <FluentProvider className="app-container" theme={theme}>
             {AuthHelper.isAuthAAD() ? (
