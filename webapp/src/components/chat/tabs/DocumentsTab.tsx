@@ -61,11 +61,12 @@ const useClasses = makeStyles({
         ...shorthands.margin('0', tokens.spacingHorizontalS, '0', '0'),
     },
     vectorDatabase: {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginLeft: 'auto',
-        ...shorthands.gap(tokens.spacingHorizontalSNudge),
+        display: 'none',
+        //display: 'flex',
+        //flexDirection: 'row',
+        //alignItems: 'baseline',
+        //marginLeft: 'auto',
+        //...shorthands.gap(tokens.spacingHorizontalSNudge),
     },
     table: {
         backgroundColor: tokens.colorNeutralBackground1,
