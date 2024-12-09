@@ -20,7 +20,7 @@ export const Constants = {
     bot: {
         profile: {
             id: 'bot',
-            fullName: 'Copilot',
+            fullName: process.env.REACT_APP_BOT_FULL_NAME ?? 'Chat CoPilot',
             emailAddress: '',
             photo: botIcon1,
         },

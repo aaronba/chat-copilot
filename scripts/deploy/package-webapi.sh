@@ -69,6 +69,11 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
+    -bn | --bot-full-name)
+        BOT_FULL_NAME="$2"
+        shift
+        shift
+        ;;
     -nz | --no-zip)
         NO_ZIP=true
         shift
@@ -166,6 +171,9 @@ if [[ -z "$SKIP_FRONTEND" ]]; then
         rm "$filePath"
     fi
 
+    BOT_FULL_NAME="${BOT_FULL_NAME:-Chat CoPilot}" # Default to 'Chat Copilot' if not provided
+
+
     echo "REACT_APP_BACKEND_URI=" >> "$filePath"
     echo "REACT_APP_SK_VERSION=$Version" >> "$filePath"
     echo "REACT_APP_SK_BUILD_INFO=$InformationalVersion" >> "$filePath"
@@ -179,6 +187,7 @@ if [[ -z "$SKIP_FRONTEND" ]]; then
     echo "REACT_APP_GLOBAL_DOCUMENT_UPLOAD_ENABLED=$DOCUMENT_GLOBAL_UPLOAD" >> "$filePath"
     echo "REACT_APP_CREATE_NEW_CHAT=$CreateNewChat" >> "$filePath"
     echo "REACT_APP_BANNER_TEXT=$BANNER_MESSAGE" >> "$filePath"
+    echo "REACT_APP_BOT_FULL_NAME=$BOT_FULL_NAME" >> "$filePath"
 
     echo "Installing yarn dependencies..."
     yarn install
