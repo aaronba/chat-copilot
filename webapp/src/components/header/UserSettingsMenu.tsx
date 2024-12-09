@@ -52,25 +52,36 @@ export const UserSettingsMenu: FC<IUserSettingsProps> = ({ setLoadingState }) =>
         resetState();
     }, [instance, setLoadingState]);
 
+    const helpUrl = 'https://example.com/help'; // Replace with SharePoint URL
+
+    const openHelp = () => {
+        window.open(helpUrl, '_blank');
+    };
     return (
-        <>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+                data-testid="helpButton"
+                style={{ color: 'white', fontSize: 'inherit' }}
+                appearance="transparent"
+                onClick={openHelp}
+            >
+                Help
+            </Button>
             {AuthHelper.isAuthAAD() ? (
                 <Menu>
                     <MenuTrigger disableButtonEnhancement>
-                        {
-                            <Avatar
-                                className={classes.root}
-                                key={activeUserInfo?.username}
-                                name={activeUserInfo?.username}
-                                size={28}
-                                badge={
-                                    !features[FeatureKeys.SimplifiedExperience].enabled
-                                        ? { status: 'available' }
-                                        : undefined
-                                }
-                                data-testid="userSettingsButton"
-                            />
-                        }
+                        <Avatar
+                            className={classes.root}
+                            key={activeUserInfo?.username}
+                            name={activeUserInfo?.username}
+                            size={28}
+                            badge={
+                                !features[FeatureKeys.SimplifiedExperience].enabled
+                                    ? { status: 'available' }
+                                    : undefined
+                            }
+                            data-testid="userSettingsButton"
+                        />
                     </MenuTrigger>
                     <MenuPopover>
                         <MenuList>
@@ -119,6 +130,6 @@ export const UserSettingsMenu: FC<IUserSettingsProps> = ({ setLoadingState }) =>
                     setOpenSettingsDialog(false);
                 }}
             />
-        </>
+        </div>
     );
 };
