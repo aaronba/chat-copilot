@@ -8,7 +8,28 @@ import { IChatMessage } from '../../../libs/models/ChatMessage';
 import * as utils from './../../utils/TextUtils';
 const useClasses = makeStyles({
     content: {
-        wordBreak: 'break-word',
+        wordBreak: 'break-word', // Break long words
+    },
+    markdown: {
+        '& pre': {
+            wordBreak: 'break-word', // Break long words
+            overflowWrap: 'anywhere', // Allow breaking within long sequences
+            whiteSpace: 'pre-wrap', // Preserve line breaks but allow wrapping
+            maxWidth: '100%', // Constrain to container width
+            overflow: 'auto', // Add vertical scroll if necessary
+            backgroundColor: '#f4f4f4', // Optional: give it a subtle background
+            padding: '8px', // Optional: add padding for better readability
+            borderRadius: '4px', // Optional: rounded corners
+        },
+        '& code': {
+            wordBreak: 'break-word', // Break long words
+            overflowWrap: 'anywhere', // Allow breaking within long sequences
+            whiteSpace: 'pre-wrap', // Preserve line breaks but allow wrapping
+            maxWidth: '100%', // Prevent overflow
+            backgroundColor: '#f4f4f4', // Optional: give it a subtle background
+            padding: '2px 4px', // Optional: add padding for inline code
+            borderRadius: '4px', // Optional: rounded corners
+        },
     },
 });
 
@@ -22,7 +43,11 @@ export const ChatHistoryTextContent: React.FC<ChatHistoryTextContentProps> = ({ 
 
     return (
         <div className={classes.content}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <div className={classes.markdown}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {content}
+                </ReactMarkdown>
+            </div>
         </div>
     );
 };
