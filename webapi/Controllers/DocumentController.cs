@@ -74,28 +74,29 @@ public class DocumentController : ControllerBase
     /// Service API for importing a document.
     /// Documents imported through this route will be considered as global documents.
     /// </summary>
-    [Route("documents")]
+    [Route("{catalog}/documents")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IActionResult> DocumentImportAsync(
         [FromServices] IKernelMemory memoryClient,
         [FromServices] IHubContext<MessageRelayHub> messageRelayHubContext,
-        [FromForm] DocumentImportForm documentImportForm)
+        [FromForm] DocumentImportForm documentImportForm,
+        [FromRoute] string catalog)
     {
         return this.DocumentImportAsync(
             memoryClient,
             messageRelayHubContext,
             DocumentScopes.Global,
             DocumentMemoryOptions.GlobalDocumentChatId,
-            documentImportForm
+            documentImportForm, catalog
         );
     }
 
     /// <summary>
     /// Service API for importing a document.
     /// </summary>
-    [Route("chats/{chatId}/documents")]
+    [Route("chats/{chatId}/{catalog}/documents")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -103,14 +104,15 @@ public class DocumentController : ControllerBase
         [FromServices] IKernelMemory memoryClient,
         [FromServices] IHubContext<MessageRelayHub> messageRelayHubContext,
         [FromRoute] Guid chatId,
-        [FromForm] DocumentImportForm documentImportForm)
+        [FromForm] DocumentImportForm documentImportForm,
+        [FromRoute] string catalog)
     {
         return this.DocumentImportAsync(
             memoryClient,
             messageRelayHubContext,
             DocumentScopes.Chat,
             chatId,
-            documentImportForm);
+            documentImportForm, catalog);
     }
 
     private async Task<IActionResult> DocumentImportAsync(
@@ -118,7 +120,7 @@ public class DocumentController : ControllerBase
         IHubContext<MessageRelayHub> messageRelayHubContext,
         DocumentScopes documentScope,
         Guid chatId,
-        DocumentImportForm documentImportForm)
+        DocumentImportForm documentImportForm, string catalog)
     {
         try
         {
@@ -134,7 +136,7 @@ public class DocumentController : ControllerBase
         // Pre-create chat-message
         DocumentMessageContent documentMessageContent = new();
 
-        var importResults = await this.ImportDocumentsAsync(memoryClient, chatId, documentImportForm, documentMessageContent);
+        var importResults = await this.ImportDocumentsAsync(memoryClient, chatId, documentImportForm, documentMessageContent, catalog);
 
         var chatMessage = await this.TryCreateDocumentUploadMessageAsync(chatId, documentMessageContent);
 
@@ -170,14 +172,14 @@ public class DocumentController : ControllerBase
         return this.Ok(chatMessage);
     }
 
-    private async Task<IList<ImportResult>> ImportDocumentsAsync(IKernelMemory memoryClient, Guid chatId, DocumentImportForm documentImportForm, DocumentMessageContent messageContent)
+    private async Task<IList<ImportResult>> ImportDocumentsAsync(IKernelMemory memoryClient, Guid chatId, DocumentImportForm documentImportForm, DocumentMessageContent messageContent, string? catalog)
     {
         IEnumerable<ImportResult> importResults = new List<ImportResult>();
 
         await Task.WhenAll(
             documentImportForm.FormFiles.Select(
                 async formFile =>
-                    await this.ImportDocumentAsync(formFile, memoryClient, chatId).ContinueWith(
+                    await this.ImportDocumentAsync(formFile, memoryClient, chatId, catalog).ContinueWith(
                         task =>
                         {
                             var importResult = task.Result;
@@ -196,7 +198,7 @@ public class DocumentController : ControllerBase
         return importResults.ToArray();
     }
 
-    private async Task<ImportResult> ImportDocumentAsync(IFormFile formFile, IKernelMemory memoryClient, Guid chatId)
+    private async Task<ImportResult> ImportDocumentAsync(IFormFile formFile, IKernelMemory memoryClient, Guid chatId, string? catalog)
     {
         this._logger.LogInformation("Importing document {0}", formFile.FileName);
 
@@ -207,7 +209,8 @@ public class DocumentController : ControllerBase
             this._authInfo.UserId,
             MemorySourceType.File,
             formFile.Length,
-            hyperlink: null
+            hyperlink: null,
+            catalog: catalog
         );
 
         if (!(await this.TryUpsertMemorySourceAsync(memorySource)))

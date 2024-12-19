@@ -21,6 +21,7 @@ import React, { useState } from 'react';
 import { useAppSelector } from '../../redux/app/hooks';
 import { RootState } from '../../redux/app/store';
 import { FeatureKeys } from '../../redux/features/app/AppState';
+import ChatMenuDropdown from '../ChatMenuDropdown';
 import { Alerts } from '../shared/Alerts';
 import { ChatRoom } from './ChatRoom';
 import { ParticipantsList } from './controls/ParticipantsList';
@@ -189,6 +190,7 @@ export const ChatWindow: React.FC = () => {
                             </>
                         )}
                     </TabList>
+                    <ChatMenuDropdown></ChatMenuDropdown>
                 </div>
                 <div className={classes.controls}>
                     {!features[FeatureKeys.SimplifiedExperience].enabled && (

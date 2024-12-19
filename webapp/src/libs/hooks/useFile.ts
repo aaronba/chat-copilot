@@ -49,10 +49,11 @@ export const useFile = () => {
     }
 
     const handleImport = async (
+        catalog: string,
         chatId: string,
         documentFileRef: React.MutableRefObject<HTMLInputElement | null>,
         uploadToGlobal = false,
-        file?: File,
+        file?: File | undefined,
         dragAndDropFiles?: FileList,
     ) => {
         const files = dragAndDropFiles ?? documentFileRef.current?.files;
@@ -68,7 +69,7 @@ export const useFile = () => {
             );
 
             if (filesArray.length > 0) {
-                await chat.importDocument(chatId, filesArray, uploadToGlobal);
+                await chat.importDocument(catalog, chatId, filesArray, uploadToGlobal);
             }
 
             dispatch(

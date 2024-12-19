@@ -174,7 +174,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
 
     const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
         onDragLeave(e);
-        void fileHandler.handleImport(selectedId, documentFileRef, false, undefined, e.dataTransfer.files);
+        void fileHandler.handleImport('global', selectedId, documentFileRef, false, undefined, e.dataTransfer.files);
     };
 
     // Get the character limit from the environment variable, default to 30000 if not found
@@ -254,7 +254,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ isDraggingOver, onDragLeav
                                 accept={Constants.app.importTypes}
                                 multiple={true}
                                 onChange={() => {
-                                    void fileHandler.handleImport(selectedId, documentFileRef);
+                                    void fileHandler.handleImport('global', selectedId, documentFileRef);
                                 }}
                             />
                             <Button

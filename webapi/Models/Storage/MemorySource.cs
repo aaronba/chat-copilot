@@ -2,6 +2,7 @@
 
 using System.Text.Json.Serialization;
 using CopilotChat.WebApi.Storage;
+using UglyToad.PdfPig.Content;
 
 namespace CopilotChat.WebApi.Models.Storage;
 
@@ -69,6 +70,12 @@ public class MemorySource : IStorageEntity
     public long Size { get; set; }
 
     /// <summary>
+    /// The the document catalog
+    /// </summary>
+    [JsonPropertyName("catalog")]
+    public string Catalog { get; set; } = string.Empty;
+
+    /// <summary>
     /// The number of tokens in the source.
     /// </summary>
     [JsonPropertyName("tokens")]
@@ -87,7 +94,7 @@ public class MemorySource : IStorageEntity
     {
     }
 
-    public MemorySource(string chatId, string name, string sharedBy, MemorySourceType type, long size, Uri? hyperlink)
+    public MemorySource(string chatId, string name, string sharedBy, MemorySourceType type, long size, Uri? hyperlink, string catalog)
     {
         this.Id = Guid.NewGuid().ToString();
         this.ChatId = chatId;
@@ -97,5 +104,6 @@ public class MemorySource : IStorageEntity
         this.SharedBy = sharedBy;
         this.CreatedOn = DateTimeOffset.Now;
         this.Size = size;
+        this.Catalog = catalog;
     }
 }

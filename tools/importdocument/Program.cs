@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System.CommandLine;
+using System.Data.Common;
 using Microsoft.Identity.Client;
 
 namespace ImportDocument;
@@ -138,6 +139,7 @@ public static class Program
 
         async Task UploadAsync(Guid? chatId = null)
         {
+            String catalog = "global";
             // Create a HttpClient instance and set the timeout to infinite since
             // large documents will take a while to parse.
             using HttpClientHandler clientHandler = new()
@@ -156,7 +158,7 @@ public static class Program
             }
 
             string uriPath =
-                chatId.HasValue ? $"chats/{chatId}/documents" : "documents";
+                chatId.HasValue ? $"chats/{chatId}/{catalog}/documents" : $"{catalog}/documents";
 
             try
             {

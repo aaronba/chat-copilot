@@ -194,10 +194,14 @@ export class ChatService extends BaseService {
         return await this.getChatAsync(chatId, accessToken);
     };
 
-    public getChatMemorySourcesAsync = async (chatId: string, accessToken: string): Promise<ChatMemorySource[]> => {
+    public getChatMemorySourcesAsync = async (
+        chatId: string,
+        accessToken: string,
+        catalog: string,
+    ): Promise<ChatMemorySource[]> => {
         const result = await this.getResponseAsync<ChatMemorySource[]>(
             {
-                commandPath: `chats/${chatId}/documents`,
+                commandPath: `chats/${chatId}/${catalog}/documents`,
                 method: 'GET',
             },
             accessToken,

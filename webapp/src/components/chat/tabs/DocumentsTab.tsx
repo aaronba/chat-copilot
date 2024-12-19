@@ -49,7 +49,9 @@ import { Add20 } from '../../shared/BundledIcons';
 import { timestampToDateString } from '../../utils/TextUtils';
 import { TabView } from './TabView';
 
-const EmptyGuid = '00000000-0000-0000-0000-000000000000';
+const GloballGuid = '00000000-0000-0000-0000-000000000000';
+const LocalGuid = '11111111-1111-1111-1111-111111111111';
+const CloudGuid = '33333333-3333-3333-3333-333333333333';
 
 const useClasses = makeStyles({
     functional: {
@@ -146,7 +148,7 @@ export const DocumentsTab: React.FC = () => {
                     accept={Constants.app.importTypes}
                     multiple={true}
                     onChange={() => {
-                        void fileHandler.handleImport(selectedId, localDocumentFileRef, false);
+                        void fileHandler.handleImport('local', selectedId, localDocumentFileRef, false);
                     }}
                 />
                 <input
@@ -156,7 +158,7 @@ export const DocumentsTab: React.FC = () => {
                     accept={Constants.app.importTypes}
                     multiple={true}
                     onChange={() => {
-                        void fileHandler.handleImport(selectedId, globalDocumentFileRef, true);
+                        void fileHandler.handleImport('global', selectedId, globalDocumentFileRef, true);
                     }}
                 />
                 <Menu>
@@ -389,7 +391,16 @@ function useTable(resources: ChatMemorySource[]) {
 }
 
 function getAccessString(chatId: string) {
-    return chatId === EmptyGuid ? 'Global' : 'This chat';
+    let accessString = '';
+    if (chatId === GloballGuid) {
+        accessString = 'Global';
+    } else if (chatId === LocalGuid) {
+        accessString = 'Local';
+    } else if (chatId === CloudGuid) {
+        accessString = 'Cloud';
+    }
+
+    return accessString;
 }
 
 export function getFileIconByFileExtension(fileName: string, props: FluentIconsProps = {}) {

@@ -6,6 +6,7 @@ import { BaseService } from './BaseService';
 
 export class DocumentImportService extends BaseService {
     public importDocumentAsync = async (
+        catalog: string,
         chatId: string,
         documents: File[],
         useContentSafety: boolean,
@@ -13,6 +14,7 @@ export class DocumentImportService extends BaseService {
         uploadToGlobal: boolean,
     ) => {
         const formData = new FormData();
+        formData.append('Catalog', catalog);
         formData.append('useContentSafety', useContentSafety.toString());
         for (const document of documents) {
             formData.append('formFiles', document);
@@ -29,10 +31,13 @@ export class DocumentImportService extends BaseService {
     };
 
     public getContentSafetyStatusAsync = async (accessToken: string): Promise<boolean> => {
+        const formData = new FormData();
+        formData.append('Catalog', 'Global');
         const serviceInfo = await this.getResponseAsync<ServiceInfo>(
             {
                 commandPath: 'info',
                 method: 'GET',
+                body: formData,
             },
             accessToken,
         );
