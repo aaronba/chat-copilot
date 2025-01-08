@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@fluentui/font-icons-mdl2": "^8.5.56",
+    "@fluentui/react": "^8.122.1"
+  }
+}
