@@ -1,58 +1,40 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { ContextualMenu, IContextualMenuItem } from '@fluentui/react';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { initializeIcons } from '@fluentui/font-icons-mdl2';
+import { Dropdown, IDropdownOption, IRenderFunction, ISelectableOption } from '@fluentui/react';
 import * as React from 'react';
 
-const ChatMenuDropdown: React.FunctionComponent = () => {
-    const menuItems: IContextualMenuItem[] = [
-        {
-            key: 'global',
-            text: 'Global',
-            iconProps: { iconName: 'Globe' },
-            onClick: () => {
-                console.log('global upload clicked');
-                setChatId('00000000-0000-0000-0000-000000000000');
-            },
-        },
-        {
-            key: 'local',
-            text: 'Local',
-            iconProps: { iconName: 'Edit' },
-            onClick: () => {
-                console.log('local upload clicked');
-                setChatId('11111111-1111-1111-1111-111111111111');
-            },
-        },
-        {
-            key: 'cloud',
-            text: 'Cloud',
-            iconProps: { iconName: 'Delete' },
-            onClick: () => {
-                console.log('cloud upload clicked');
-                setChatId('33333333-3333-3333-3333-333333333333');
-            },
-        },
-    ];
-    const [isContextMenuVisible, setContextMenuVisible] = React.useState(false);
-    const [target, setTarget] = React.useState<HTMLElement | null>(null);
-    const [chatId, setChatId] = React.useState('');
+// Initialize icons
+initializeIcons();
 
-    const onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
-        event.preventDefault();
-        setTarget(event.currentTarget);
-        setContextMenuVisible(true);
-    };
+const options: IDropdownOption[] = [
+    { key: 'Chat', text: 'Chat', data: { icon: 'Mail' } },
+    { key: 'Global', text: 'Global', data: { icon: 'Globe' } },
+    { key: 'Catalog', text: 'Catalog', data: { icon: 'People' } },
+];
 
-    const onDismiss = () => {
-        setContextMenuVisible(false);
-        setTarget(null);
-    };
+const setSessionStorage = (key: string, value: string) => {
+    sessionStorage.setItem(key, value);
+};
 
+const onRenderOption: IRenderFunction<ISelectableOption> = (option) => {
+    if (!option) return null;
     return (
-        <div onContextMenu={onContextMenu}>
-            {/* <ChatMenuDropdown></ChatMenuDropdown> */}
-            <span>Mode :{chatId} </span>
-            {isContextMenuVisible && <ContextualMenu items={menuItems} target={target} onDismiss={onDismiss} />}
+        <div>
+            <i className={`ms-Icon ms-Icon--${option.data?.icon}`} aria-hidden="true"></i>
+            <span>{option.text}</span>
         </div>
+    );
+};
+
+const onChange = (event: React.FormEvent<HTMLDivElement>, option?: IDropdownOption): void => {
+    setSessionStorage('mode', option?.text.toLowerCase() ?? '');
+    console.log(option, 'test option');
+    console.log(event);
+};
+
+const ChatMenuDropdown: React.FC = () => {
+    return (
+        <Dropdown placeholder="Select a mode" options={options} onChange={onChange} onRenderOption={onRenderOption} />
     );
 };
 

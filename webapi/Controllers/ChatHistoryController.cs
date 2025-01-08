@@ -221,7 +221,7 @@ public class ChatHistoryController : ControllerBase
     /// <summary>
     /// Gets list of imported documents for a given chat.
     /// </summary>
-    [Route("chats/{chatId:guid}/documents")]
+    [Route("chats/{chatId:guid}/{catalog}/documents")]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

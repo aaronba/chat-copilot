@@ -14,7 +14,6 @@ export class DocumentImportService extends BaseService {
         uploadToGlobal: boolean,
     ) => {
         const formData = new FormData();
-        formData.append('Catalog', catalog);
         formData.append('useContentSafety', useContentSafety.toString());
         for (const document of documents) {
             formData.append('formFiles', document);
@@ -22,7 +21,7 @@ export class DocumentImportService extends BaseService {
 
         return await this.getResponseAsync<IChatMessage>(
             {
-                commandPath: uploadToGlobal ? `documents` : `chats/${chatId}/documents`,
+                commandPath: uploadToGlobal ? `${catalog}/documents` : `chats/${chatId}/${catalog}/documents`,
                 method: 'POST',
                 body: formData,
             },
@@ -32,7 +31,6 @@ export class DocumentImportService extends BaseService {
 
     public getContentSafetyStatusAsync = async (accessToken: string): Promise<boolean> => {
         const formData = new FormData();
-        formData.append('Catalog', 'Global');
         const serviceInfo = await this.getResponseAsync<ServiceInfo>(
             {
                 commandPath: 'info',

@@ -50,9 +50,6 @@ import { timestampToDateString } from '../../utils/TextUtils';
 import { TabView } from './TabView';
 
 const GloballGuid = '00000000-0000-0000-0000-000000000000';
-const LocalGuid = '11111111-1111-1111-1111-111111111111';
-const CloudGuid = '33333333-3333-3333-3333-333333333333';
-
 const useClasses = makeStyles({
     functional: {
         display: 'flex',
@@ -394,12 +391,12 @@ function getAccessString(chatId: string) {
     let accessString = '';
     if (chatId === GloballGuid) {
         accessString = 'Global';
-    } else if (chatId === LocalGuid) {
+    } else if (chatId !== GloballGuid) {
         accessString = 'Local';
-    } else if (chatId === CloudGuid) {
-        accessString = 'Cloud';
+        // } else if (chatId === CloudGuid) {
+        //     accessString = 'Cloud';
+        // }
     }
-
     return accessString;
 }
 

@@ -96,7 +96,7 @@ public class DocumentController : ControllerBase
     /// <summary>
     /// Service API for importing a document.
     /// </summary>
-    [Route("chats/{chatId}/{catalog}/documents")]
+    [Route("chats/{chatId}/{catalogId}/documents")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -105,14 +105,14 @@ public class DocumentController : ControllerBase
         [FromServices] IHubContext<MessageRelayHub> messageRelayHubContext,
         [FromRoute] Guid chatId,
         [FromForm] DocumentImportForm documentImportForm,
-        [FromRoute] string catalog)
+        [FromRoute] string catalogId)
     {
         return this.DocumentImportAsync(
             memoryClient,
             messageRelayHubContext,
             DocumentScopes.Chat,
             chatId,
-            documentImportForm, catalog);
+            documentImportForm, catalogId);
     }
 
     private async Task<IActionResult> DocumentImportAsync(

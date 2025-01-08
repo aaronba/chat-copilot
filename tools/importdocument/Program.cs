@@ -3,14 +3,17 @@
 using System.CommandLine;
 using System.Data.Common;
 using Microsoft.Identity.Client;
+using System.Collections.Generic;
 
 namespace ImportDocument;
 
 /// <summary>
 /// This console app imports a list of files to Chat Copilot's WebAPI document memory store.
 /// </summary>
+/// 
 public static class Program
 {
+    static Dictionary<string, string> sessionStorage = new Dictionary<string, string>();
     public static void Main(string[] args)
     {
         var config = Config.GetConfig();
@@ -137,11 +140,23 @@ public static class Program
             fileContent.Dispose();
         }
 
+
+
+        static string GetSessionStorage(string key) { return sessionStorage.ContainsKey(key) ? sessionStorage[key] : null; }
+
+
         async Task UploadAsync(Guid? chatId = null)
+
         {
-            String catalog = "global";
+            // Utility function to get session storage 
+            var catalogSelected = GetSessionStorage("mode");
+
+            String catalog = catalogSelected ?? "global";
+
             // Create a HttpClient instance and set the timeout to infinite since
             // large documents will take a while to parse.
+
+
             using HttpClientHandler clientHandler = new()
             {
                 CheckCertificateRevocationList = true

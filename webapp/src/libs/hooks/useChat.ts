@@ -48,11 +48,20 @@ export interface GetResponseOptions {
 }
 
 export const useChat = () => {
+    const getSessionStorage = (key: string) => {
+        return sessionStorage.getItem(key);
+    };
+
+    const mode = getSessionStorage('mode') ?? '';
+
+    console.log(mode, 'test2');
+
     const dispatch = useAppDispatch();
+
     const { instance, inProgress } = useMsal();
     const { conversations } = useAppSelector((state: RootState) => state.conversations);
     const { activeUserInfo, features } = useAppSelector((state: RootState) => state.app);
-    const [catalog, setCatalog] = useState('global');
+    const [catalog, setCatalog] = useState('');
 
     const botService = new ChatArchiveService();
     const chatService = new ChatService();
@@ -133,6 +142,10 @@ export const useChat = () => {
                 {
                     key: 'messageType',
                     value: messageType.toString(),
+                },
+                {
+                    key: 'catalog',
+                    value: mode,
                 },
             ],
         };
@@ -268,7 +281,6 @@ export const useChat = () => {
     };
 
     const getChatMemorySources = async (chatId: string) => {
-        setCatalog('global');
         try {
             return await chatService.getChatMemorySourcesAsync(
                 chatId,
@@ -284,6 +296,8 @@ export const useChat = () => {
     };
 
     const getSemanticMemories = async (chatId: string, memoryName: string) => {
+        setCatalog(mode);
+        console.log(catalog);
         try {
             return await chatService.getSemanticMemoriesAsync(
                 chatId,
